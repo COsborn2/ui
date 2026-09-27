@@ -1,6 +1,6 @@
 # Publishing and updating @cosborn2/ui
 
-The library lives in the private `COsborn2/ui` repository and has its own version in the root `package.json`. Consumer applications install the public npm package; library development and publication stay in this repository. MIT is included. The `@cosborn2` npm organization is secured, but the first publication and account-side configuration must be completed before automatic releases work.
+The library lives in the `COsborn2/ui` repository and has its own version in the root `package.json`. Consumer applications install the public npm package; library development and publication stay in this repository. MIT is included. The `@cosborn2` npm organization is secured, but the first publication and account-side configuration must be completed before automatic releases work. Review the [repository settings](repository-settings.md) before enabling releases.
 
 ## 1. Publish the first beta once
 
@@ -48,13 +48,13 @@ After the package exists, open **npm → @cosborn2/ui → Settings → Trusted P
 | Environment name | `npm-publish` |
 | Allowed actions | Enable direct `npm publish` |
 
-New npm trusted publishers default to staged publishing; direct publication must be allowed for this workflow. OIDC supplies temporary credentials, so no `NPM_TOKEN` secret is needed. `COsborn2/ui` is initially private: the workflow sets provenance to `false`; it enables provenance if the repository becomes public. Private repositories can use trusted publishing without provenance. [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/)
+New npm trusted publishers default to staged publishing; direct publication must be allowed for this workflow. OIDC supplies temporary credentials, so no `NPM_TOKEN` secret is needed. The workflow enables provenance when the repository is public and disables it when the repository is private. Private repositories can use trusted publishing without provenance. [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/)
 
 Finally, in **COsborn2/ui → Settings → Secrets and variables → Actions → Variables**, create the repository variable `UI_NPM_PUBLISH_ENABLED` with the exact value `true`. This gate applies to automatic runs and manual retries. It does not itself trigger a release.
 
 ## 3. Release subsequent changes
 
-Include the next UI version and updated root `bun.lock` in the reviewed PR. During this beta, use `0.1.0-beta.1`, `0.1.0-beta.2`, and so on. After real consumer verification, use `0.1.0` for the first stable release. Compatible fixes use patch increments; new APIs use minor increments. Before `1.0`, breaking changes also require a new minor version and migration notes. Document package changes and migration notes in the release PR. Consumer applications maintain their own product changelogs.
+Include the next UI version in the reviewed PR. Run `bun install` to refresh the root lockfile and commit any resulting `bun.lock` changes; a version-only bump may leave it unchanged. During this beta, use `0.1.0-beta.1`, `0.1.0-beta.2`, and so on. After real consumer verification, use `0.1.0` for the first stable release. Compatible fixes use patch increments; new APIs use minor increments. Before `1.0`, breaking changes also require a new minor version and migration notes. Document package changes and migration notes in the release PR. Consumer applications maintain their own product changelogs.
 
 The [publish workflow](../.github/workflows/publish-ui.yml) runs when a push to `main` changes the root `package.json`. It checks the exact committed version against npm, skips an already-published version, installs the frozen lockfile, runs lint, builds, runs package tests and the packed browser suite, then publishes. Prereleases use `beta`; stable releases use `latest`. Registry failures stop the release. A manifest edit without a new version does not republish an existing release.
 
