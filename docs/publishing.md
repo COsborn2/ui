@@ -8,7 +8,7 @@ Choose the next version in a reviewed PR. Increment the prerelease identifier fo
 
 Update `package.json`, run `bun install` to refresh the lockfile, and commit any resulting `bun.lock` changes. A version-only bump may leave the lockfile unchanged. After the required checks and review, squash merge the PR.
 
-When a push to `main` changes `package.json` and `UI_NPM_PUBLISH_ENABLED` is `true`, the workflow checks the committed version against npm. A missing version proceeds through frozen installation, lint, build, unit tests, and the packed browser suite before publication. Prereleases use `beta`; stable releases use `latest`. Existing versions are skipped; registry failures stop the release. Confirm the workflow result and npm version/tag after publication.
+When a push to `main` changes `package.json` and `UI_NPM_PUBLISH_ENABLED` is `true`, the workflow checks the committed version against npm. A missing version proceeds through frozen installation, lint, build, unit tests, and the packed browser suite before publication. The workflow requests `beta` for prereleases and `latest` for stable releases; see the first-publication caveat below. Existing versions are skipped; registry failures stop the release. Confirm the workflow result and npm version/tag after publication.
 
 The workflow does not choose versions, create Git tags or GitHub releases, or update consumer applications. Source changes without a version bump are not a new release.
 
@@ -46,7 +46,9 @@ npm view "@cosborn2/ui@$UI_RELEASE_VERSION" version
 npm view @cosborn2/ui dist-tags --json
 ```
 
-Complete npm's interactive authentication prompts locally. The manual bootstrap omits CI provenance; subsequent trusted publications from the public repository include it. Never assign a prerelease to `latest`.
+Complete npm's interactive authentication prompts locally. The manual bootstrap omits CI provenance; subsequent trusted publications from the public repository include it.
+
+On a package's first publication, npm may also assign `latest` despite an explicit `--tag beta`, and reject removing that tag ([npm CLI issue #8490](https://github.com/npm/cli/issues/8490)). Inspect the tags after publication. If both point to the first beta, leave them until the first reviewed stable release replaces `latest`; do not publish a placeholder version to change this state. Consumers should pin an explicit beta version until a stable release is available.
 
 ### Configure trusted publishing
 
@@ -70,7 +72,7 @@ In **GitHub → COsborn2/ui → Settings → Secrets and variables → Actions �
 
 Applications install a published version, commit their resulting lockfile, and verify frozen installation, tests, types, and production builds before merging the update. Test affected UI flows and bundle budgets. Template maintainers should also generate and verify a fresh application; existing generated applications need their own dependency updates.
 
-Adopt beta releases and breaking changes explicitly with migration review. Dependency-update automation belongs to each consumer repository and must enforce its intended review policy. npm publication does not update installed applications or trigger an immediate dependency-update PR.
+Pin beta dependencies to an exact version, such as `@cosborn2/ui@0.1.0-beta.0`; `latest` is not a stability guarantee before the first stable release. Adopt beta releases and breaking changes explicitly with migration review. Dependency-update automation belongs to each consumer repository and must enforce its intended review policy. npm publication does not update installed applications or trigger an immediate dependency-update PR.
 
 ## Library dependency maintenance
 
