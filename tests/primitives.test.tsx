@@ -9,6 +9,7 @@ import { ExpandablePill } from "../src/expandable-pill.js";
 import { SegmentedControl } from "../src/segmented-control.js";
 import { Switch } from "../src/switch.js";
 import { HeaderShell } from "../src/header-shell.js";
+import { assertIsolatedImports } from "../scripts/verify-package.js";
 
 describe("native form behavior", () => {
   test("Button preserves native submit semantics and explicit overrides", () => {
@@ -99,7 +100,53 @@ describe("composable static and interactive surfaces", () => {
     expect(html.startsWith("<header")).toBe(true);
     expect(html).toContain('href="/"');
     expect(html).toContain("Save");
-    expect(html).not.toContain("Application");
+    expect(html).toContain(">Brand</a>");
     expect(html).not.toContain("--rb-");
+  });
+});
+
+describe("published dependency isolation", () => {
+  const manifest = {
+    dependencies: { "lucide-react": "0.577.0" },
+    peerDependencies: { react: "^19.0.0", "react-dom": "^19.0.0" },
+  };
+
+  test("accepts declared packages, peer subpaths and relative distribution imports", () => {
+    expect(() => assertIsolatedImports(`
+      import { jsx } from "react/jsx-runtime";
+      export { Button } from "./button.js";
+      type Node = import("react").ReactNode;
+      const icons = import("lucide-react");
+      const portal = require("react-dom");
+      // import { unrelated } from "@private/app";
+    `, "dist/example.js", manifest)).not.toThrow();
+  });
+
+  test("rejects undeclared application aliases and packages across import forms", () => {
+    for (const source of [
+      'import { store } from "@/store";',
+      'export { session } from "@private/app";',
+      'const session = import("@private/app/session");',
+      'const store = require("undeclared-store");',
+      'type Session = import("@private/app").Session;',
+    ]) expect(() => assertIsolatedImports(source, "dist/example.js", manifest)).toThrow("Undeclared dependency");
+  });
+
+  test("rejects application runtimes even when someone declares them", () => {
+    for (const name of ["next", "zustand", "@fortawesome/free-solid-svg-icons"]) {
+      expect(() => assertIsolatedImports(`import "${name}";`, "dist/example.js", {
+        dependencies: { [name]: "1.0.0" },
+      })).toThrow("Application runtime dependency");
+    }
+  });
+
+  test("rejects private workspace dependencies and relative escapes from dist", () => {
+    for (const version of ["workspace:*", "file:../private", "link:../private", "npm:private-app@1.0.0"]) {
+      expect(() => assertIsolatedImports('import "private-app";', "dist/example.js", {
+        dependencies: { "private-app": version },
+      })).toThrow("Nonportable dependency");
+    }
+    expect(() => assertIsolatedImports('export { session } from "../../private/session.js";', "dist/example.js", manifest))
+      .toThrow("Import escapes the published distribution");
   });
 });

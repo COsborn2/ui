@@ -5,14 +5,42 @@ import { cp, mkdir, mkdtemp, readFile, readdir, realpath, rm, stat, writeFile } 
 import { createServer } from "node:http";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
-import { dirname, join, relative, resolve } from "node:path";
+import { dirname, join, posix, relative, resolve } from "node:path";
 import { brotliCompressSync, gzipSync } from "node:zlib";
 import { build, type Metafile } from "esbuild";
 import { bundle } from "lightningcss";
+import ts from "typescript";
 
 export const packageRoot = resolve(import.meta.dirname, "..");
 const packageRequire = createRequire(join(packageRoot, "package.json"));
 const reactExternals = ["react", "react/*", "react-dom", "react-dom/*"];
+
+interface PublishedDependencies {
+  dependencies?: Record<string, string>;
+  peerDependencies?: Record<string, string>;
+}
+
+/** Published code may import its own distribution or declared public dependencies. */
+export function assertIsolatedImports(content: string, filename: string, manifest: PublishedDependencies) {
+  const entries = [...Object.entries(manifest.dependencies ?? {}), ...Object.entries(manifest.peerDependencies ?? {})];
+  const dependencies = new Set(entries.map(([name]) => name));
+  for (const [name, version] of entries) {
+    assert.ok(!/^(?:workspace|file|link|portal|npm):/.test(version), `Nonportable dependency ${name}: ${version}`);
+  }
+  // TypeScript's scanner covers imports, re-exports, import types, literal
+  // dynamic imports and require calls without matching comments or plain text.
+  const references = ts.preProcessFile(content, true, true);
+  for (const { fileName: specifier } of [...references.importedFiles, ...references.referencedFiles, ...references.typeReferenceDirectives]) {
+    if (specifier.startsWith("./") || specifier.startsWith("../")) {
+      const target = posix.normalize(posix.join(posix.dirname(filename), specifier));
+      assert.ok(target.startsWith("dist/") && !specifier.includes("\\"), `Import escapes the published distribution in ${filename}: ${specifier}`);
+      continue;
+    }
+    const name = specifier.startsWith("@") ? specifier.split("/").slice(0, 2).join("/") : specifier.split("/")[0];
+    assert.ok(name !== "next" && name !== "zustand" && !name.startsWith("@fortawesome/"), `Application runtime dependency in ${filename}: ${specifier}`);
+    assert.ok(dependencies.has(name) && !specifier.split("/").includes("..") && !specifier.includes("\\"), `Undeclared dependency in ${filename}: ${specifier}`);
+  }
+}
 
 export interface Fixture {
   directory: string;
@@ -155,7 +183,7 @@ export async function prepareFixture(): Promise<Fixture> {
   const files = await filesBelow(join(installedPackage, "dist"));
   for (const file of files.filter((file) => /\.(?:js|d\.ts)$/.test(file))) {
     const content = await readFile(file, "utf8");
-    assert.ok(!/(?:from\s*|import\s*)["'](?:@\/|@Application\/|next(?:\/|["'])|zustand|@fortawesome)/.test(content), `Application dependency leaked into ${relative(installedPackage, file)}`);
+    assertIsolatedImports(content, relative(installedPackage, file).split("\\").join("/"), installedManifest);
     if (file.endsWith(".js")) assert.ok(!/import\s*["'][^"']+\.css["']/.test(content), "JavaScript entries must remain importable by Node without a CSS loader");
   }
   for (const name of ["button", "input", "select", "settings", "pill", "header-shell", "data-table", "pagination", "notice", "toast"]) {

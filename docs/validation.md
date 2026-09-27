@@ -1,6 +1,6 @@
-# Standalone package migration validation
+# Standalone package validation
 
-`@cosborn2/ui@0.1.0-beta.0` has been moved from the application workspace into the private `COsborn2/ui` repository. Component source, styles, tokens, and runtime exports are unchanged by this repository move. Build configuration, fixture paths, repository metadata, CI, and release documentation now work independently of either application.
+`@cosborn2/ui@0.1.0-beta.0` is maintained in the standalone `COsborn2/ui` repository. It owns its build configuration, fixture dependencies, CI, and release workflow. Component source, styles, tokens, and runtime exports are independent of consumer applications.
 
 The MIT-licensed public npm package has not been published. The registry lookup for the first beta still returns 404. Local tarball installation verifies the package contents but does not replace the pending registry install and lockfile checks.
 
@@ -10,33 +10,33 @@ The MIT-licensed public npm package has not been published. The registry lookup 
 | --- | --- |
 | Package | `@cosborn2/ui@0.1.0-beta.0` |
 | Archive | `cosborn2-ui-0.1.0-beta.0.tgz` |
-| Compressed archive | 32,875 bytes |
-| Unpacked contents | 131,520 bytes |
+| Compressed archive | 32,863 bytes |
+| Unpacked contents | 131,509 bytes |
 | Archive files | 84 |
-| SHA-256 | `008f1fbd36a1ff0870c3bf5344648a2eb564c592286b1d06d046dba111ab795f` |
+| SHA-256 | `ab14a1b90ef26a74b775d75ff4000f2df63ccda3d03e1ebe9a708917eaefd7a0` |
 
 This identity applies to the tested archive. Editing packaged files or rebuilding after further changes requires a fresh artifact and verification; the still-unpublished version alone does not identify its contents.
 
 ## Standalone checks
 
-- A frozen dependency install, lint/type checks, and the package build pass independently of application.
-- Unit tests pass: **71 tests, 283 assertions**.
+- A frozen dependency install, lint/type checks, and the package build pass without any application checkout.
+- Unit tests pass: **75 tests, 297 assertions**.
 - The fresh packed consumer passes **58 browser tests**, covering plain React and production Next with Chromium.
 - The consumer uses **Next 16.3.5**, **React 19.3.0**, and **Tailwind 4.3.3**. The plain React fixture imports no Tailwind styles.
+- Tracked repository files and all 84 archive files were checked for legacy product names and internal application repository links; no matches remain.
 - Packed export/declaration checks, Node SSR, React Server Components, hydration, component interaction, CSS isolation, and the existing size gates pass.
 
 The tree-shaken, minified JavaScript measurements are **220 bytes gzip for Button** and **15,187 bytes gzip for Modal**, excluding the existing React/React DOM peers. Modal includes its reachable dialog/icon dependencies. These are isolated consumer measurements, not whole-application transfer sizes. Archive size is reported separately because tree shaking does not reduce the installed dependency distributions.
 
 ## Application integration
 
-The applications were checked against this standalone archive, with registry-backed lockfiles still pending:
+The application checks below used the preceding standalone archive (`008f1fbd36a1ff0870c3bf5344648a2eb564c592286b1d06d046dba111ab795f`). Its compiled distribution and package metadata match the current archive byte-for-byte; only the packaged README changed. Registry-backed lockfile validation remains pending:
 
 | Consumer | Evidence |
 | --- | --- |
-| bnh-template | Installed distribution matches the archive. Web tests pass: **72 tests, 146 assertions**. The scaffold regression passes **36 assertions**. Lint/type checks and the production build pass. Validation was recorded on source commit `0ae41b8`. |
-| Application | All **84 archive files** match the installed package. Web tests pass: **619 tests, 2,231 assertions**. Root lint/type checks across **10 workspaces**, theme synchronization, the icon check, and the final production build pass. |
+| bnh-template | Installed distribution matches the current archive. Web tests pass: **72 tests, 146 assertions**. The scaffold regression passes **36 assertions**. Lint/type checks and the production build pass. Validation was recorded on source commit `0ae41b8`. |
 
-[application #291](https://github.com/COsborn2/application/pull/291) and [bnh-template #168](https://github.com/COsborn2/bnh-template/pull/168) remain draft until the first public beta can be installed normally and each real `bun.lock` regenerated and verified. Previously generated template projects require their own dependency updates.
+[bnh-template #168](https://github.com/COsborn2/bnh-template/pull/168) remains draft until the first public beta can be installed normally and its real `bun.lock` regenerated and verified. Previously generated template projects require their own dependency updates.
 
 ## Reproduce and retain evidence
 
