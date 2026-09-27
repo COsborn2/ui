@@ -1,0 +1,64 @@
+name: Dependency approvals
+
+on:
+  workflow_run:
+    workflows: [UI Package]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      pull_request_number:
+        description: Open dependency or generated release PR to re-evaluate after successful CI
+        required: true
+        type: number
+
+permissions:
+  actions: read
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: dependency-approval-${{ github.event.workflow_run.head_branch || inputs.pull_request_number }}
+  cancel-in-progress: true
+
+jobs:
+  approve:
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'workflow_dispatch' ||
+       (github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.event == 'pull_request' &&
+        github.event.workflow_run.head_repository.full_name == github.repository))
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      # Privileged workflow: execute only trusted main, never a PR head or its artifacts.
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version-file: .bun-version
+      - name: Validate exact CI head, dependency changes and release provenance
+        id: policy
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_AUTHOR: ${{ github.repository_owner }}
+        # Native data parsers only; no dependency install and no PR code execution.
+        run: bun scripts/dependency-policy.ts
+      - name: Approve the validated commit
+        if: steps.policy.outputs.allowed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.policy.outputs.pr_number }}
+          PR_HEAD_SHA: ${{ steps.policy.outputs.head_sha }}
+        run: |
+          set -euo pipefail
+          current_head="$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" --jq .head.sha)"
+          [[ "$current_head" == "$PR_HEAD_SHA" ]] || { echo "::error::PR head changed; successful CI and a new policy run are required."; exit 1; }
+          existing="$(gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/reviews" --jq ".[] | select(.user.login == \"github-actions[bot]\" and .state == \"APPROVED\" and .commit_id == \"$PR_HEAD_SHA\") | .id")"
+          if [[ -z "$existing" ]]; then
+            jq -n --arg commit "$PR_HEAD_SHA" '{event:"APPROVE",commit_id:$commit,body:"Automated dependency/release policy approval of this exact commit after successful verification. Required CI and code-owner review remain enforced."}' > "$RUNNER_TEMP/dependency-approval.json"
+            gh api --method POST "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/reviews" --input "$RUNNER_TEMP/dependency-approval.json"
+          fi
+      # Approval does not merge or enable auto-merge; repository rules govern merging.

@@ -4,13 +4,13 @@ The root `package.json` owns the package version. Releases are public and MIT li
 
 ## Release a version
 
-Choose the next version in a reviewed PR. Increment the prerelease identifier for beta releases, use patch versions for compatible fixes, and minor versions for new APIs. Before `1.0`, breaking changes require a new minor version; from `1.0` onward, use a new major version. Include migration notes for breaking changes. Documentation-only maintenance does not require publication.
+Choose the next version in a reviewed PR. Dependency maintenance can generate these version PRs automatically, as described below. Increment the prerelease identifier for beta releases, use patch versions for compatible fixes, and minor versions for new APIs. Before `1.0`, breaking changes require a new minor version; from `1.0` onward, use a new major version. Include migration notes for breaking changes. Documentation-only maintenance does not require publication.
 
 Update `package.json`, run `bun install` to refresh the lockfile, and commit any resulting `bun.lock` changes. A version-only bump may leave the lockfile unchanged. After the required checks and review, squash merge the PR.
 
 When a push to `main` changes `package.json` and `UI_NPM_PUBLISH_ENABLED` is `true`, the workflow checks the committed version against npm. A missing version proceeds through frozen installation, lint, build, React unit tests, Storybook interaction/accessibility tests, the documentation build, and npm contents/exports checks before publication. The workflow requests `beta` for prereleases and `latest` for stable releases; see the first-publication caveat below. Existing versions are skipped; registry failures stop the release. Confirm the workflow result and npm version/tag after publication.
 
-The workflow does not choose versions, create Git tags or GitHub releases, or update consumer applications. Source changes without a version bump are not a new release.
+The publish workflow does not choose versions, create Git tags or GitHub releases, or update consumer applications. The separate dependency-release workflow proposes version changes through PRs. Source changes without a version bump are not a new release.
 
 ## Retry a release
 
@@ -79,4 +79,18 @@ Pin beta dependencies to an exact version, such as `@cosborn2/ui@0.1.0-beta.0`; 
 
 ## Library dependency maintenance
 
-Dependabot proposes grouped daily Bun updates and weekly GitHub Actions updates. Lucide is deliberately excluded from automatic updates. Upgrade it manually after reviewing compatibility and passing the component suite. Include a reviewed package version bump when a dependency change should ship.
+Dependabot checks Bun dependencies daily and GitHub Actions weekly. The dependency automation approves eligible minor/patch updates after the component CI workflow passes. Maintainers retain control of merging. Major upgrades, prerelease dependencies, pre-1.0 minor upgrades, and unclassified changes require manual review. Lucide remains deliberately pinned for server-compatible icons; upgrade it manually after compatibility review.
+
+After a Bun dependency update merges, the dependency-release workflow opens or refreshes one version-only PR. Stable versions advance one patch (`1.2.3` → `1.2.4`); beta versions advance their existing beta sequence (`0.1.0-beta.1` → `0.1.0-beta.2`). Automation never promotes a beta to stable. The release PR passes the normal checks and receives an automated approval; a maintainer then squash merges it. That version change triggers the existing trusted npm publisher. GitHub Actions-only changes do not publish a new npm package.
+
+A pending release PR is refreshed against current `main`; a maintainer version bump supersedes it. Publication remains idempotent through the existing exact-version registry check. Consumer applications still adopt versions independently.
+
+### Enable approval and release preparation
+
+Create an expiring, repository-scoped GitHub token with Contents and Pull requests read/write permissions. Store it as the Actions repository secret `DEPENDABOT_AUTOMERGE_PAT`; never put the token in a file, PR, or chat. This identity creates release PRs so GitHub can trigger their CI runs normally. The built-in `GITHUB_TOKEN` supplies approvals. Maintainer merges trigger the subsequent publish workflow. Using `GITHUB_TOKEN` for merges would suppress downstream push workflows; see [GitHub token behavior](https://docs.github.com/en/actions/concepts/security/github_token).
+
+In **Settings → Actions → General → Workflow permissions**, enable **Allow GitHub Actions to create and approve pull requests** while keeping the default token permissions read-only. Keep one required approval, stale-review dismissal, strict required checks, and squash-only merges. The existing mandatory CODEOWNER review remains in place. An automated approval does not replace that requirement, and auto-merge is not enabled by these workflows. Removing the CODEOWNER requirement and enabling unattended merges require an explicit repository-policy decision.
+
+Both privileged workflows operate on trusted base/main code and API metadata. They never install or execute a dependency PR's code. The approval guard verifies the author, same-repository branch, commit ownership, changed files and versions, and exact head SHA; generated releases must be a proven version-only change. Missing credentials or an invalid policy check stop automation.
+
+Merge the workflow changes to `main` before expecting them to run. Eligible PRs are reconsidered when their component CI workflow completes successfully. Use **Actions → Dependency approvals → Run workflow** on `main` with a PR number to retry its policy check after CI passes. Use **Actions → Prepare Dependency Release → Run workflow** on `main` to reconcile a pending dependency release if necessary.

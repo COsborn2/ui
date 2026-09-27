@@ -8,9 +8,8 @@ updates:
       minor-and-patch:
         update-types: ["minor", "patch"]
     ignore:
-      # 0.577.0 is verified in the React Server Component fixture. Later Lucide
-      # implementations may introduce a client context. Upgrade deliberately,
-      # with the RSC and per-component bundle checks, including patch releases.
+      # Keep static icons server-compatible. New Lucide releases require a
+      # deliberate compatibility review, including patch releases.
       - dependency-name: "lucide-react"
         versions: ["*"]
     open-pull-requests-limit: 10
