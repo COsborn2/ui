@@ -1,44 +1,58 @@
-# Publishing and updating @cosborn2/ui
+# Publishing @cosborn2/ui
 
-The library lives in the `COsborn2/ui` repository and has its own version in the root `package.json`. Consumer applications install the public npm package; library development and publication stay in this repository. MIT is included. The `@cosborn2` npm organization is secured, but the first publication and account-side configuration must be completed before automatic releases work. Review the [repository settings](repository-settings.md) before enabling releases.
+The root `package.json` owns the package version. Releases are public and MIT licensed. The [publish workflow](../.github/workflows/publish-ui.yml) validates the package and publishes through npm trusted publishing. Configure the account and repository prerequisites below before enabling it.
 
-## 1. Publish the first beta once
+## Release a version
 
-Merge the standalone UI package PR in `COsborn2/ui` first, then use a clean checkout of that reviewed `main` commit. Keep consumer adoption PRs, including [bnh-template #168](https://github.com/COsborn2/bnh-template/pull/168), in draft until npm publication and their registry-backed lockfile checks are complete. Keep `UI_NPM_PUBLISH_ENABLED` unset until bootstrap is complete. Sign in to an npm account with publishing access to the organization and enable account 2FA. [npm scoped public packages](https://docs.npmjs.com/creating-and-publishing-scoped-public-packages/)
+Choose the next version in a reviewed PR. Increment the prerelease identifier for beta releases, use patch versions for compatible fixes, and minor versions for new APIs. Before `1.0`, breaking changes require a new minor version; from `1.0` onward, use a new major version. Include migration notes for breaking changes. Documentation-only maintenance does not require publication.
 
-From the UI repository root, verify the release metadata and run the package checks:
+Update `package.json`, run `bun install` to refresh the lockfile, and commit any resulting `bun.lock` changes. A version-only bump may leave the lockfile unchanged. After the required checks and review, squash merge the PR.
+
+When a push to `main` changes `package.json` and `UI_NPM_PUBLISH_ENABLED` is `true`, the workflow checks the committed version against npm. A missing version proceeds through frozen installation, lint, build, unit tests, and the packed browser suite before publication. Prereleases use `beta`; stable releases use `latest`. Existing versions are skipped; registry failures stop the release. Confirm the workflow result and npm version/tag after publication.
+
+The workflow does not choose versions, create Git tags or GitHub releases, or update consumer applications. Source changes without a version bump are not a new release.
+
+## Retry a release
+
+Use **Actions → Publish UI Package → Run workflow**, select `main`, and enter the exact version committed in `package.json` with its matching `beta` or `latest` channel. The same checks and publishing gate apply. A published version is skipped and cannot be overwritten; changed package contents require a new version.
+
+## Initial setup and recovery
+
+Use this section when creating the npm package or restoring its publishing configuration. Keep the repository variable `UI_NPM_PUBLISH_ENABLED` unset or `false` until setup is complete. The gate applies to automatic runs and manual retries.
+
+### Create the npm package if it does not exist
+
+Use a clean checkout of reviewed `main` and an npm account with publishing access to the `cosborn2` organization and 2FA enabled. From the repository root:
 
 ```sh
 bun install --frozen-lockfile
 bun scripts/check-release.ts
 bun run lint
 bun run test
-```
-
-If Playwright Chromium is not installed, run `bunx playwright install chromium` from the UI repository root. Retain the browser fixture so publication uses the exact tarball it tested:
-
-```sh
+bunx playwright install chromium
 UI_FIXTURE_DIR="$(mktemp -d "${TMPDIR:-/tmp}/bnh-ui-verify-XXXXXX")"
 BNH_UI_FIXTURE_DIR="$UI_FIXTURE_DIR" BNH_UI_KEEP_FIXTURE=1 bun run test:browser
 ```
 
-This builds and packs the library, installs the tarball in isolated React/Next consumers, and checks SSR, browser behavior, exports, and size budgets. The [fixture guide](../fixtures/README.md) explains the checks and retained artifacts. Validate application integrations against the same artifact before publication, then finish their registry checks in step 4. After all checks pass, publish from the same shell:
+The browser command builds and packs the library, installs that tarball in isolated React/Next consumers, and checks SSR, browser behavior, exports, and size budgets. See the [fixture guide](../fixtures/README.md) for retained artifacts. Validate affected application integrations against the same artifact before publication. After checks pass, publish the tested tarball from the same shell:
 
 ```sh
+UI_RELEASE_VERSION="$(node -p 'require("./package.json").version')"
+UI_RELEASE_CHANNEL="$(node -p 'require("./package.json").version.includes("-") ? "beta" : "latest"')"
 npm login
 npm whoami
-npm publish "$UI_FIXTURE_DIR/cosborn2-ui-0.1.0-beta.0.tgz" --access public --tag beta --provenance=false
-npm view @cosborn2/ui@0.1.0-beta.0 version
+npm publish "$UI_FIXTURE_DIR/cosborn2-ui-$UI_RELEASE_VERSION.tgz" --access public --tag "$UI_RELEASE_CHANNEL" --provenance=false
+npm view "@cosborn2/ui@$UI_RELEASE_VERSION" version
 npm view @cosborn2/ui dist-tags --json
 ```
 
-Complete npm's interactive authentication prompts locally. The beta tag should point to `0.1.0-beta.0`; do not assign this prerelease to `latest`. An already-published version cannot be replaced—use a new version for changed contents. The public package contains its compiled UI distribution, README, license, and metadata; it does not contain application code.
+Complete npm's interactive authentication prompts locally. The manual bootstrap omits CI provenance; subsequent trusted publications from the public repository include it. Never assign a prerelease to `latest`.
 
-## 2. Enable automatic publication
+### Configure trusted publishing
 
-In **COsborn2/ui → Settings → Environments**, create `npm-publish` and restrict its deployment branches to `main`. Leave required reviewers disabled if releases should proceed automatically after merge; enabling them deliberately adds a release approval.
+In **GitHub → COsborn2/ui → Settings → Environments**, ensure `npm-publish` permits deployments from only the `main` branch. Leave required environment reviewers disabled for automatic releases after merge; enabling reviewers adds a separate release approval.
 
-After the package exists, open **npm → @cosborn2/ui → Settings → Trusted Publisher**, choose **GitHub Actions**, and enter these exact values:
+In **npm → @cosborn2/ui → Settings → Trusted Publisher**, choose **GitHub Actions** and enter:
 
 | Field | Value |
 | --- | --- |
@@ -48,36 +62,16 @@ After the package exists, open **npm → @cosborn2/ui → Settings → Trusted P
 | Environment name | `npm-publish` |
 | Allowed actions | Enable direct `npm publish` |
 
-New npm trusted publishers default to staged publishing; direct publication must be allowed for this workflow. OIDC supplies temporary credentials, so no `NPM_TOKEN` secret is needed. The workflow enables provenance when the repository is public and disables it when the repository is private. Private repositories can use trusted publishing without provenance. [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/)
+Direct publishing must be allowed because this workflow uses `npm publish`. OIDC provides temporary credentials, so no `NPM_TOKEN` secret is needed. The workflow enables provenance for a public repository and disables it for a private repository. See [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/) for account-side requirements.
 
-Finally, in **COsborn2/ui → Settings → Secrets and variables → Actions → Variables**, create the repository variable `UI_NPM_PUBLISH_ENABLED` with the exact value `true`. This gate applies to automatic runs and manual retries. It does not itself trigger a release.
+In **GitHub → COsborn2/ui → Settings → Secrets and variables → Actions → Variables**, set the **repository variable** `UI_NPM_PUBLISH_ENABLED` to exactly `true`. It is not a secret or an environment variable. Changing it does not trigger a release; use the retry procedure for an unpublished version already on `main`.
 
-## 3. Release subsequent changes
+## Consumer updates
 
-Include the next UI version in the reviewed PR. Run `bun install` to refresh the root lockfile and commit any resulting `bun.lock` changes; a version-only bump may leave it unchanged. During this beta, use `0.1.0-beta.1`, `0.1.0-beta.2`, and so on. After real consumer verification, use `0.1.0` for the first stable release. Compatible fixes use patch increments; new APIs use minor increments. Before `1.0`, breaking changes also require a new minor version and migration notes. Document package changes and migration notes in the release PR. Consumer applications maintain their own product changelogs.
+Applications install a published version, commit their resulting lockfile, and verify frozen installation, tests, types, and production builds before merging the update. Test affected UI flows and bundle budgets. Template maintainers should also generate and verify a fresh application; existing generated applications need their own dependency updates.
 
-The [publish workflow](../.github/workflows/publish-ui.yml) runs when a push to `main` changes the root `package.json`. It checks the exact committed version against npm, skips an already-published version, installs the frozen lockfile, runs lint, builds, runs package tests and the packed browser suite, then publishes. Prereleases use `beta`; stable releases use `latest`. Registry failures stop the release. A manifest edit without a new version does not republish an existing release.
+Adopt beta releases and breaking changes explicitly with migration review. Dependency-update automation belongs to each consumer repository and must enforce its intended review policy. npm publication does not update installed applications or trigger an immediate dependency-update PR.
 
-The pipeline does not choose or bump versions, create Git tags/GitHub releases, or publish every source edit. Review and commit the version change as part of the release PR. To retry a failed release, use **Actions → Publish UI Package → Run workflow**, select `main`, and enter the exact committed version with its matching `beta` or `latest` channel. Once published, another run skips that version. Confirm the first automated release in the workflow log and npm package versions.
+## Library dependency maintenance
 
-## 4. Complete consumer PRs and update generated apps
-
-After the first beta is public, finish the consumer adoption PRs with a registry install. For bnh-template, run this from `apps/web`:
-
-```sh
-bun add --exact @cosborn2/ui@0.1.0-beta.0
-```
-
-Commit each application repository’s resulting `bun.lock`, then verify frozen root installs, tests, lint/type checks, and production builds. Also generate and verify a fresh project from bnh-template. Keep consumer adoption PRs in draft and unmerged until these registry checks pass; then mark them ready for review. For subsequent beta updates, run the same command with the new explicit version; do not assume Dependabot will follow every prerelease or automatically merge it.
-
-bnh-template configures daily Bun Dependabot checks and receives dependency-update PRs that change its manifest and lockfile. Its workflow enables auto-merge for updates reported as minor or patch. Keep `@cosborn2/ui` minor and major version updates excluded from Dependabot in consumers while its API is below `1.0`: make those updates explicitly and review migration notes. Compatible stable patch updates can use the existing automatic path. Revisit this exception at `1.0`. Check these one-time prerequisites in each application repository:
-
-- **Settings → General → Pull Requests → Allow auto-merge** is enabled.
-- Branch rules require the relevant CI checks before merging.
-- The existing `DEPENDABOT_AUTOMERGE_PAT` Actions secret is available, with repository contents and pull-request write permissions for the identity that approves and merges Dependabot PRs. Configure it in GitHub; do not commit it or share it in chat.
-
-Dependabot checks are scheduled, not an immediate callback from npm publication. Exact version pins can still be updated through its PRs. An npm release does not change already-installed applications, and updating bnh-template does not rewrite projects previously generated from it; those repositories need their own dependency updates and CI. [Dependabot configuration](https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-options-reference), [GitHub auto-merge setup](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-auto-merge-for-pull-requests-in-your-repository)
-
-## UI repository dependency maintenance
-
-This repository opens grouped daily Bun dependency PRs and weekly GitHub Actions update PRs. Lucide is deliberately excluded from automated updates: its pinned release is verified to render icons in React Server Components. Upgrade it manually only after the RSC and per-component size checks pass. Dependency PRs do not change the UI package version automatically; include a reviewed version bump when a dependency change should ship. The UI repository does not need the applications’ Dependabot auto-merge secret to publish npm releases.
+Dependabot proposes grouped daily Bun updates and weekly GitHub Actions updates. Lucide is deliberately excluded from automatic updates because its pinned version is verified in React Server Components. Upgrade it manually after the SSR and size checks pass. Include a reviewed package version bump when a dependency change should ship.

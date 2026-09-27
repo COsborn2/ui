@@ -17,3 +17,13 @@ Temporary fixtures are deleted after success by default. Set `BNH_UI_KEEP_FIXTUR
 Size gates measure minified output with gzip and Brotli, count transitive dialog/icon code, and track package download/unpacked bytes separately. The initial gates are Button JS ≤1.5 KiB gzip, Modal JS ≤20 KiB, theme plus Button CSS ≤3 KiB, Modal CSS ≤3 KiB, and settings CSS ≤5 KiB. A failing gate requires investigation rather than automatically widening its limit.
 
 Feedback/menu verification covers keyboard and pointer selection, disabled items, nested Modal/menu Escape (including mounting races), portal theme inheritance, viewport collisions, live message semantics, timed-host hover/focus pausing, and no-JavaScript static feedback. Notice and Toast have a 4 KiB gzip JS budget and 3 KiB CSS budget each; ActionsMenu has a 30 KiB JS budget including Radix positioning/focus code and a 2 KiB CSS budget. Button graph/style checks explicitly exclude all three additions.
+
+## Installed dependency footprint
+
+After installing dependencies, run the optional diagnostic from the repository root:
+
+```sh
+node scripts/measure-dependency-footprint.mjs /tmp/bnh-ui-dependencies.json
+```
+
+Pass a retained package tarball as the second argument to include its compressed and unpacked sizes. The report sums locally installed production dependencies, including transitive dependencies, while excluding React/React DOM peers and development dependencies. These logical file sizes describe installation footprint, not tree-shaken browser transfer or registry download size. This diagnostic is separate from the enforced bundle budgets above.
