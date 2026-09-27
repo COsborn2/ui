@@ -8,7 +8,7 @@ Choose the next version in a reviewed PR. Increment the prerelease identifier fo
 
 Update `package.json`, run `bun install` to refresh the lockfile, and commit any resulting `bun.lock` changes. A version-only bump may leave the lockfile unchanged. After the required checks and review, squash merge the PR.
 
-When a push to `main` changes `package.json` and `UI_NPM_PUBLISH_ENABLED` is `true`, the workflow checks the committed version against npm. A missing version proceeds through frozen installation, lint, build, unit tests, and the packed browser suite before publication. The workflow requests `beta` for prereleases and `latest` for stable releases; see the first-publication caveat below. Existing versions are skipped; registry failures stop the release. Confirm the workflow result and npm version/tag after publication.
+When a push to `main` changes `package.json` and `UI_NPM_PUBLISH_ENABLED` is `true`, the workflow checks the committed version against npm. A missing version proceeds through frozen installation, lint, build, React unit tests, Storybook interaction/accessibility tests, the documentation build, and npm contents/exports checks before publication. The workflow requests `beta` for prereleases and `latest` for stable releases; see the first-publication caveat below. Existing versions are skipped; registry failures stop the release. Confirm the workflow result and npm version/tag after publication.
 
 The workflow does not choose versions, create Git tags or GitHub releases, or update consumer applications. Source changes without a version bump are not a new release.
 
@@ -28,20 +28,23 @@ Use a clean checkout of reviewed `main` and an npm account with publishing acces
 bun install --frozen-lockfile
 bun scripts/check-release.ts
 bun run lint
-bun run test
+bun run build
 bunx playwright install chromium
-UI_FIXTURE_DIR="$(mktemp -d "${TMPDIR:-/tmp}/bnh-ui-verify-XXXXXX")"
-BNH_UI_FIXTURE_DIR="$UI_FIXTURE_DIR" BNH_UI_KEEP_FIXTURE=1 bun run test:browser
+bun run test
+bun run build-storybook
+bun run check:package
 ```
 
-The browser command builds and packs the library, installs that tarball in isolated React/Next consumers, and checks SSR, browser behavior, exports, and size budgets. See the [fixture guide](../fixtures/README.md) for retained artifacts. Validate affected application integrations against the same artifact before publication. After checks pass, publish the tested tarball from the same shell:
+These commands validate component behavior, accessibility, types, documentation, and published files. See the [testing guide](testing.md). After checks pass, pack the already-built distribution without rebuilding and publish it from the same shell:
 
 ```sh
 UI_RELEASE_VERSION="$(node -p 'require("./package.json").version')"
 UI_RELEASE_CHANNEL="$(node -p 'require("./package.json").version.includes("-") ? "beta" : "latest"')"
+UI_RELEASE_DIR="$(mktemp -d "${TMPDIR:-/tmp}/ui-release-XXXXXX")"
+npm pack --ignore-scripts --pack-destination "$UI_RELEASE_DIR"
 npm login
 npm whoami
-npm publish "$UI_FIXTURE_DIR/cosborn2-ui-$UI_RELEASE_VERSION.tgz" --access public --tag "$UI_RELEASE_CHANNEL" --provenance=false
+npm publish "$UI_RELEASE_DIR/cosborn2-ui-$UI_RELEASE_VERSION.tgz" --access public --tag "$UI_RELEASE_CHANNEL" --provenance=false
 npm view "@cosborn2/ui@$UI_RELEASE_VERSION" version
 npm view @cosborn2/ui dist-tags --json
 ```
@@ -70,10 +73,10 @@ In **GitHub → COsborn2/ui → Settings → Secrets and variables → Actions �
 
 ## Consumer updates
 
-Applications install a published version, commit their resulting lockfile, and verify frozen installation, tests, types, and production builds before merging the update. Test affected UI flows and bundle budgets. Template maintainers should also generate and verify a fresh application; existing generated applications need their own dependency updates.
+Applications install a published version, commit their resulting lockfile, and verify frozen installation, tests, types, and production builds before merging the update. Test affected UI flows and each application's own required checks. Template maintainers should also generate and verify a fresh application; existing generated applications need their own dependency updates.
 
 Pin beta dependencies to an exact version, such as `@cosborn2/ui@0.1.0-beta.0`; `latest` is not a stability guarantee before the first stable release. Adopt beta releases and breaking changes explicitly with migration review. Dependency-update automation belongs to each consumer repository and must enforce its intended review policy. npm publication does not update installed applications or trigger an immediate dependency-update PR.
 
 ## Library dependency maintenance
 
-Dependabot proposes grouped daily Bun updates and weekly GitHub Actions updates. Lucide is deliberately excluded from automatic updates because its pinned version is verified in React Server Components. Upgrade it manually after the SSR and size checks pass. Include a reviewed package version bump when a dependency change should ship.
+Dependabot proposes grouped daily Bun updates and weekly GitHub Actions updates. Lucide is deliberately excluded from automatic updates. Upgrade it manually after reviewing compatibility and passing the component suite. Include a reviewed package version bump when a dependency change should ship.

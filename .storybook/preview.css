@@ -1,0 +1,10 @@
+body { margin: 0; }
+.story-surface {
+  box-sizing: border-box;
+  min-height: 100vh;
+  padding: 24px;
+  background: var(--bnh-bg);
+  color: var(--bnh-text);
+  font-family: var(--bnh-font-sans);
+}
+.story-surface *, .story-surface *::before, .story-surface *::after { box-sizing: border-box; }

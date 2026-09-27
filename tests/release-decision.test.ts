@@ -1,4 +1,5 @@
-import { describe, expect, mock, test } from "bun:test";
+// @vitest-environment node
+import { describe, expect, vi, test } from "vitest";
 import { decideRelease, type ReleaseInput } from "../scripts/decide-release.js";
 
 const prerelease: ReleaseInput = {
@@ -9,7 +10,7 @@ const prerelease: ReleaseInput = {
 
 describe("npm release decisions", () => {
   test("an absent prerelease publishes under beta using an exact version lookup", async () => {
-    const fetchRegistry = mock(async (_url: string, _init: RequestInit) => new Response(null, { status: 404 }));
+    const fetchRegistry = vi.fn(async (_url: string, _init: RequestInit) => new Response(null, { status: 404 }));
     expect(await decideRelease(prerelease, fetchRegistry)).toEqual({
       version: "0.1.0-beta.0", channel: "beta", shouldPublish: true,
     });
@@ -49,7 +50,7 @@ describe("npm release decisions", () => {
     { expectedVersion: prerelease.version, requestedChannel: "latest" },
     { version: "0.1.0", expectedVersion: "0.1.0", requestedChannel: "beta" },
   ])("rejects invalid manual release input before registry access: %j", async overrides => {
-    const fetchRegistry = mock(async () => new Response(null, { status: 404 }));
+    const fetchRegistry = vi.fn(async () => new Response(null, { status: 404 }));
     await expect(decideRelease({ ...prerelease, eventName: "workflow_dispatch", ...overrides }, fetchRegistry)).rejects.toThrow();
     expect(fetchRegistry).not.toHaveBeenCalled();
   });
@@ -79,13 +80,13 @@ describe("npm release decisions", () => {
   });
 
   test.each(["latest", "01.1.0", "0.1.0-beta.01", "0.1.0\nshould_publish=true"])("rejects invalid version %j", async version => {
-    const fetchRegistry = mock(async () => new Response(null, { status: 404 }));
+    const fetchRegistry = vi.fn(async () => new Response(null, { status: 404 }));
     await expect(decideRelease({ ...prerelease, version }, fetchRegistry)).rejects.toThrow("Invalid package version");
     expect(fetchRegistry).not.toHaveBeenCalled();
   });
 
   test("rejects events other than push or manual dispatch", async () => {
-    const fetchRegistry = mock(async () => new Response(null, { status: 404 }));
+    const fetchRegistry = vi.fn(async () => new Response(null, { status: 404 }));
     await expect(decideRelease({ ...prerelease, eventName: "pull_request" }, fetchRegistry))
       .rejects.toThrow("Unsupported release event");
     expect(fetchRegistry).not.toHaveBeenCalled();

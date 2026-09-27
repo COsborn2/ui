@@ -24,9 +24,19 @@ jobs:
       - run: bun install --frozen-lockfile
       - run: bun run lint
       - run: bun run build
-      - run: bun run test
-      - name: Install Chromium
+      - name: Install Storybook browser
         run: bunx playwright install --with-deps chromium
-      - name: Verify packed artifact, budgets, SSR, and browser behavior
-        run: bun run test:browser
-
+      - name: React unit and Storybook interaction/accessibility tests
+        run: bun run test
+      - name: Build component documentation
+        run: bun run build-storybook
+      - name: Check npm package contents and exports
+        run: bun run check:package
+      - name: Upload browser failure screenshots
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: storybook-failures
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 7

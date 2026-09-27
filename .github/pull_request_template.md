@@ -4,7 +4,7 @@ Describe the problem, resulting behavior, and any API or migration changes.
 
 ## Validation
 
-List the checks run and their results. For component changes, cover keyboard/focus behavior, server rendering, and the packed consumer fixtures as applicable. Explain any change to bundle size or dependencies; do not raise size budgets just to pass CI.
+List the checks run and their results. For component changes, cover public React behavior with unit tests and relevant Storybook interactions/accessibility checks. Run the Storybook build and package-content check. Explain changes to dependencies or the public API.
 
 ## Release
 

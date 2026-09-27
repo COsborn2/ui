@@ -11,5 +11,5 @@ if (pkg.publishConfig?.access !== "public") throw new Error("@cosborn2/ui must b
 for (const dependency of Object.values(pkg.dependencies ?? {})) {
   if (String(dependency).startsWith("workspace:")) throw new Error("Published dependencies must not reference private workspaces.");
 }
-console.log("Release metadata verified. Run the packed-package and browser checks before publishing.");
+console.log("Release metadata verified. Run lint, build, unit/story tests, Storybook build, and check:package before publishing.");
 

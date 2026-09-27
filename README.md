@@ -133,9 +133,9 @@ Settings layouts use `--bnh-page-offset` for a page-level banner and `--bnh-head
 
 Plain Button imports no icon or dialog code. Icons are passed as children or rendered slots. Components with built-in icons import only those glyphs. React and React DOM are peer dependencies; Radix Dialog, Radix Dropdown Menu, and the pinned Lucide release are runtime dependencies reachable only from components that use them.
 
-Lucide `0.577.0` is pinned to preserve server-compatible static icons. Current Lucide v1 uses client context internally. Upgrade only after the server-rendering and bundle fixtures pass; do not replace direct imports with an all-icons registry.
+Lucide `0.577.0` is pinned to preserve server-compatible static icons. Current Lucide v1 uses client context internally. Upgrade deliberately and validate the component stories and React behavior tests; do not replace direct imports with an all-icons registry.
 
-Installing npm packages downloads their dependency distributions. Tree shaking controls the JS/CSS shipped to the browser, not which files npm downloads. The package tests report those sizes separately.
+Installing npm packages downloads their dependency distributions. Tree shaking controls the JS/CSS shipped to the browser, not which files npm downloads. Storybook and test tooling are development dependencies and are excluded from the published distribution.
 
 ## Development and verification
 
@@ -143,16 +143,25 @@ From the repository root:
 
 ```sh
 bun install --frozen-lockfile
+bunx playwright install chromium
+bun run storybook
+```
+
+Storybook provides component examples, controls, light/dark themes, interactive scenarios, and automated accessibility checks. It uses the standard Storybook Vitest addon; Playwright is only its browser driver, with no standalone Playwright test suite. The stories and documentation build are not published in the npm package.
+
+Before submitting a change:
+
+```sh
 bun run lint
 bun run build
 bun run test
-bunx playwright install chromium
-bun run test:browser
+bun run build-storybook
+bun run check:package
 ```
 
-The build emits separate ESM modules, declarations, and plain CSS. `dev` watches source and theme/style changes. The package fixtures install a packed tarball outside this repository and check Node SSR, production Next Server Components, browser hydration/accessibility, and compressed per-component JS/CSS budgets. Browser checks require Playwright Chromium and include the packed-package checks. Use `bun run test:package` when only the non-browser checks are needed.
+`test` runs React Testing Library unit tests in jsdom and Storybook interaction/accessibility tests in Chromium. Use `test:unit` or `test:stories` for a focused run. See the [testing guide](https://github.com/COsborn2/ui/blob/main/docs/testing.md) for test conventions, coverage reports, and debugging.
 
-Edit `tokens.json` for canonical theme changes, then run `bun run build` to regenerate the packaged theme. Applications own any compatibility aliases or infrastructure pages that consume these tokens. The library does not read application styles during its build.
+The build emits separate ESM modules, declarations, and plain CSS. `dev` watches library source and theme/style changes. Edit `tokens.json` for canonical theme changes, then run `bun run build:styles` to refresh the generated styles used by Storybook. Applications own compatibility aliases or infrastructure pages that consume these tokens.
 
 ## Release
 

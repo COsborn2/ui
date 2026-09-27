@@ -8,23 +8,22 @@ Use Node.js 26 and the Bun version in `.bun-version` (also declared in `package.
 
 ```sh
 bun install --frozen-lockfile
-bun run lint
-bun run test
 bunx playwright install chromium
-bun run test:browser
+bun run storybook
 ```
 
-`lint` includes type checking. `test:browser` builds and packs the library, runs package checks, and verifies isolated plain React and production Next consumers. Use `bun run test:package` for the non-browser subset; there is no need to run it separately when running the full browser suite. See the [fixture guide](fixtures/README.md) for focused runs and retained artifacts. `bun run dev` watches library source and styles during development.
+Before submitting a PR, run `bun run lint`, `bun run build`, `bun run test`, `bun run build-storybook`, and `bun run check:package`. `lint` includes type checking of the library, stories, tests, and tooling. Use the [testing guide](docs/testing.md) for focused tests and conventions. `bun run dev` watches library source and styles.
 
 ## Component changes
 
 - Preserve granular JavaScript and CSS entry points. A small consumer must not inherit unrelated component, icon, or dialog code.
-- Keep static components server-compatible. Add client boundaries only where interaction requires them, and verify server HTML agrees with initial hydration.
+- Keep static components server-compatible. Add client boundaries only where interaction requires them, and preserve the published rendering boundaries.
 - Support React applications without Tailwind. Import only the icons a component needs, and preserve scoped theme behavior.
 - Test meaningful behavior changes, including keyboard navigation, focus restoration, nested dialogs/menus, and accessible names where relevant.
-- Review the packed fixture's compressed size and dependency graph results. Investigate budget failures rather than widening limits automatically. Explain any necessary increase in the PR.
+- Add or update Storybook examples and interaction tests for public behavior. Accessibility violations fail story tests; investigate them rather than disabling rules to make CI pass.
+- Test controlled state, callbacks, disabled/loading states, native form behavior, and event/ref composition with React Testing Library. Assert observable behavior rather than React internals or markup snapshots.
 
-Edit `tokens.json` for canonical theme changes; the build generates the packaged theme. Do not add application-specific services or styling dependencies. Lucide is pinned for verified Server Component behavior; upgrades require the SSR and size checks.
+Edit `tokens.json` for canonical theme changes; the build generates the packaged theme. Do not add application-specific services or styling dependencies. Lucide remains pinned; upgrades require deliberate review and component-test validation.
 
 ## Review and release
 

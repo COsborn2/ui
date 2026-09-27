@@ -54,12 +54,15 @@ jobs:
         if: steps.release.outputs.should_publish == 'true'
       - run: bun run build
         if: steps.release.outputs.should_publish == 'true'
-      - run: bun run test
-        if: steps.release.outputs.should_publish == 'true'
-      - name: Install Chromium
+      - name: Install Storybook browser
         if: steps.release.outputs.should_publish == 'true'
         run: bunx playwright install --with-deps chromium
-      - run: bun run test:browser
+      - name: React unit and Storybook interaction/accessibility tests
+        if: steps.release.outputs.should_publish == 'true'
+        run: bun run test
+      - run: bun run build-storybook
+        if: steps.release.outputs.should_publish == 'true'
+      - run: bun run check:package
         if: steps.release.outputs.should_publish == 'true'
       - name: Publish using npm trusted publishing
         if: steps.release.outputs.should_publish == 'true'
@@ -69,3 +72,11 @@ jobs:
           # public source. Keep publishing valid if repository visibility changes.
           NPM_CONFIG_PROVENANCE: ${{ github.event.repository.visibility == 'public' }}
         run: npm publish --access public --tag "$DIST_TAG"
+      - name: Upload browser failure screenshots
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: storybook-failures
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 7
