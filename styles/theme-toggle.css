@@ -1,0 +1,9 @@
+@layer components {
+  .bnh-theme-toggle { box-sizing: border-box; display: inline-flex; align-items: center; padding: 2px; border: 1px solid var(--bnh-border); border-radius: 999px; background: var(--bnh-input); }
+  .bnh-theme-toggle > button { box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; padding: 6px; border: 0; border-radius: 999px; background: transparent; color: var(--bnh-text-mute); font: inherit; cursor: pointer; transition: background-color 150ms, color 150ms; }
+  .bnh-theme-toggle > button:hover { color: var(--bnh-text-dim); }
+  .bnh-theme-toggle > button[aria-pressed="true"] { background: var(--bnh-hover); color: var(--bnh-text); }
+  .bnh-theme-toggle > button:focus-visible { outline: 2px solid var(--bnh-accent); outline-offset: 2px; }
+  .bnh-theme-toggle > button:disabled { cursor: not-allowed; opacity: .4; }
+  @media (prefers-reduced-motion: reduce) { .bnh-theme-toggle > button { transition: none; } }
+}

@@ -1,0 +1,18 @@
+@import "./button.css";
+
+@layer components {
+  .bnh-pagination { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-family: var(--bnh-font-sans, inherit); line-height: 1.5; }
+  .bnh-pagination__summary { font-size: 14px; color: var(--bnh-text-dim); }
+  .bnh-pagination__controls { display: flex; align-items: center; gap: 8px; }
+  .bnh-pagination__controls a { text-decoration: none; }
+  .bnh-pagination__icon { width: 12px; height: 12px; flex-shrink: 0; }
+  @media (max-width: 900px) {
+    .bnh-pagination { align-items: stretch; gap: 10px; }
+    .bnh-pagination__controls { justify-content: space-between; }
+  }
+  @media (max-width: 600px) {
+    .bnh-pagination { flex-direction: column; }
+    .bnh-pagination__controls { width: 100%; }
+    .bnh-pagination__controls > * { flex: 1; }
+  }
+}

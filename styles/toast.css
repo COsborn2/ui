@@ -1,0 +1,22 @@
+@layer components {
+  .bnh-toast-announcer { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+  .bnh-toast-viewport { box-sizing: border-box; position: fixed; left: 50%; bottom: var(--bnh-toast-bottom, 24px); transform: translateX(-50%); z-index: var(--bnh-toast-z, 400); display: flex; flex-direction: column; align-items: center; gap: 8px; width: min(448px, calc(100% - 16px)); max-height: calc(100dvh - var(--bnh-toast-bottom, 24px) - 12px); overflow-y: auto; overscroll-behavior: contain; padding: 4px; pointer-events: auto; }
+  .bnh-toast-viewport:empty { padding: 0; pointer-events: none; }
+  .bnh-toast { --bnh-toast-color: var(--bnh-accent); box-sizing: border-box; pointer-events: auto; flex-shrink: 0; display: flex; align-items: center; gap: 10px; width: fit-content; min-width: min(240px, 100%); max-width: 100%; padding: 8px 8px 8px 10px; border: 1px solid color-mix(in oklch, var(--bnh-toast-color) 20%, var(--bnh-border-2)); border-radius: 999px; color: var(--bnh-text); background: color-mix(in oklch, var(--bnh-bg) 72%, transparent); -webkit-backdrop-filter: blur(28px) saturate(1.5); backdrop-filter: blur(28px) saturate(1.5); box-shadow: var(--bnh-glass-shadow), 0 0 0 1px color-mix(in oklch, var(--bnh-toast-color) 10%, transparent); font-family: var(--bnh-font-sans, inherit); line-height: 1.5; animation: bnh-toast-in .22s cubic-bezier(.4, 0, .2, 1) both; }
+  .bnh-toast--success { --bnh-toast-color: var(--bnh-green); }
+  .bnh-toast--error { --bnh-toast-color: var(--bnh-red); }
+  .bnh-toast__indicator { position: relative; display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; flex-shrink: 0; color: var(--bnh-toast-color); }
+  .bnh-toast__ring { position: absolute; inset: 0; }
+  .bnh-toast__ring-track { fill: color-mix(in oklch, var(--bnh-toast-color) 14%, transparent); stroke: color-mix(in oklch, var(--bnh-toast-color) 22%, transparent); stroke-width: 1.5; }
+  .bnh-toast__ring-progress { fill: none; stroke: var(--bnh-toast-color); stroke-width: 1.6; stroke-linecap: round; transition: stroke-dashoffset .1s linear; }
+  .bnh-toast__icon { position: relative; }
+  .bnh-toast__message { flex: 1; min-width: 0; padding: 2px 0; font-size: 13px; font-weight: 500; letter-spacing: -.005em; overflow-wrap: anywhere; }
+  .bnh-toast__action { box-sizing: border-box; flex-shrink: 0; max-width: 45%; padding: 5px 11px; border: 0; border-radius: 999px; color: var(--bnh-text); background: color-mix(in oklch, var(--bnh-toast-color) 22%, transparent); font-family: inherit; font-size: 12px; font-weight: 600; line-height: 1.5; letter-spacing: -.005em; overflow-wrap: anywhere; cursor: pointer; transition: background .12s; }
+  .bnh-toast__action:hover { background: color-mix(in oklch, var(--bnh-toast-color) 34%, transparent); }
+  .bnh-toast__action:disabled { pointer-events: none; opacity: .4; }
+  .bnh-toast__dismiss { display: flex; align-items: center; justify-content: center; flex-shrink: 0; width: 26px; height: 26px; padding: 0; border: 0; border-radius: 999px; color: var(--bnh-text-dim); background: transparent; cursor: pointer; }
+  .bnh-toast__dismiss:hover { color: var(--bnh-text); background: var(--bnh-surface); }
+  .bnh-toast__action:focus-visible, .bnh-toast__dismiss:focus-visible { outline: 2px solid var(--bnh-accent); outline-offset: 2px; }
+  @keyframes bnh-toast-in { from { opacity: 0; translate: 0 8px; } to { opacity: 1; translate: 0 0; } }
+  @media (prefers-reduced-motion: reduce) { .bnh-toast { animation: none; } .bnh-toast__ring-progress, .bnh-toast__action { transition: none; } }
+}

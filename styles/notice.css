@@ -1,0 +1,14 @@
+@layer components {
+  .bnh-notice { box-sizing: border-box; display: flex; flex-wrap: wrap; align-items: flex-start; gap: 10px; padding: 12px; border: 1px solid var(--bnh-border-2); border-radius: var(--bnh-radius-md); background: var(--bnh-surface); color: var(--bnh-text-dim); font-family: var(--bnh-font-sans, inherit); font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
+  .bnh-notice--success { background: color-mix(in oklch, var(--bnh-green) 10%, transparent); border-color: color-mix(in oklch, var(--bnh-green) 20%, transparent); color: var(--bnh-green); }
+  .bnh-notice--danger { background: color-mix(in oklch, var(--bnh-red) 10%, transparent); border-color: color-mix(in oklch, var(--bnh-red) 20%, transparent); color: var(--bnh-red); }
+  .bnh-notice-icon { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; padding-top: .125em; }
+  .bnh-notice-icon > svg { width: 1.25em; height: 1.25em; }
+  .bnh-notice-content { flex: 1; min-width: 0; }
+  .bnh-notice-heading { font-weight: 600; }
+  .bnh-notice-heading + .bnh-notice-message { margin-top: 4px; }
+  .bnh-notice-message > :first-child { margin-top: 0; }
+  .bnh-notice-message > :last-child { margin-bottom: 0; }
+  .bnh-notice-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; max-width: 100%; }
+  @media (max-width: 480px) { .bnh-notice-actions { flex-basis: 100%; } }
+}

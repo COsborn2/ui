@@ -1,0 +1,11 @@
+@layer components {
+  .bnh-segmented-control { display: inline-flex; gap: 2px; padding: 3px; border-radius: 8px; background: var(--bnh-surface); border: 1px solid var(--bnh-border); align-self: flex-start; }
+  .bnh-segmented-control-item { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 6px; border: none; background: transparent; color: var(--bnh-text-dim); font-family: var(--bnh-font-sans, inherit); font-weight: 400; font-size: 12px; line-height: 1.5; cursor: pointer; transition: background .12s, color .12s, box-shadow .12s; }
+  .bnh-segmented-control-item:hover:not(:disabled):not([aria-pressed="true"]) { background: var(--bnh-surface-2); }
+  .bnh-segmented-control-item[aria-pressed="true"] { background: var(--bnh-hover); box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--bnh-segment-accent) 45%, var(--bnh-border-2)); color: var(--bnh-text); font-weight: 600; }
+  .bnh-segmented-control-item:disabled { opacity: .5; cursor: not-allowed; }
+  .bnh-segmented-control-item:focus-visible { outline: 2px solid var(--bnh-accent); outline-offset: 2px; }
+  .bnh-segmented-control-dot { width: 6px; height: 6px; border-radius: 50%; }
+  .bnh-segmented-control-count { font-family: var(--bnh-font-mono, monospace); font-size: 10px; opacity: .7; }
+  @media (prefers-reduced-motion: reduce) { .bnh-segmented-control-item { transition: none; } }
+}

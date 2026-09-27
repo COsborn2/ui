@@ -1,0 +1,5 @@
+body { margin: 0; font-family: system-ui, sans-serif; background: var(--bnh-bg); color: var(--bnh-text); }
+.fixture-actions { display: flex; flex-wrap: wrap; gap: 12px; padding: 16px 0; }
+[data-testid="fixture"] { padding: 24px; }
+.fixture-scroll-space { padding-top: 110vh; padding-bottom: 24px; }
+a { color: inherit; }

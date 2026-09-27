@@ -1,0 +1,10 @@
+@import "./pill.css";
+
+@layer components {
+  .bnh-expandable-pill { display: inline-flex; flex-shrink: 0; }
+  .bnh-expandable-pill-trigger { cursor: pointer; }
+  .bnh-expandable-pill-trigger:focus-visible { outline: 2px solid var(--bnh-accent); outline-offset: 2px; }
+  .bnh-expandable-pill-trigger:disabled { cursor: not-allowed; opacity: .4; }
+  .bnh-expandable-pill-panel { position: absolute; z-index: 1; transition: opacity .16s, transform .2s, visibility .2s; }
+  @media (prefers-reduced-motion: reduce) { .bnh-expandable-pill-panel { transition: none; } }
+}

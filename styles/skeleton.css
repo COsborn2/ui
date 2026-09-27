@@ -1,0 +1,5 @@
+@layer components {
+  .bnh-skeleton { border-radius: var(--bnh-radius-md); background: var(--bnh-hover); animation: bnh-pulse-soft 2s ease-in-out infinite; }
+  @keyframes bnh-pulse-soft { 0%, 100% { opacity: 1; } 50% { opacity: .6; } }
+  @media (prefers-reduced-motion: reduce) { .bnh-skeleton { animation: none; } }
+}

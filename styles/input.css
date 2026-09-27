@@ -1,0 +1,11 @@
+@layer components {
+  .bnh-input-field { display: flex; flex-direction: column; gap: 6px; }
+  .bnh-input-label { font-family: var(--bnh-font-sans, inherit); font-size: 14px; line-height: 1.5; font-weight: 500; color: var(--bnh-text-dim); }
+  .bnh-input { box-sizing: border-box; height: 40px; width: 100%; min-width: 0; border: 1px solid var(--bnh-border); border-radius: var(--bnh-radius-md); background: var(--bnh-input); padding: 0 12px; font-family: var(--bnh-font-sans, inherit); font-size: 14px; line-height: 1.5; color: var(--bnh-text); transition: border-color 150ms, box-shadow 150ms; }
+  .bnh-input::placeholder { color: var(--bnh-text-mute); opacity: 1; }
+  .bnh-input:focus { border-color: var(--bnh-input-focus); outline: none; box-shadow: 0 0 0 2px var(--bnh-input-focus-ring); }
+  .bnh-input--error, .bnh-input--error:focus { border-color: var(--bnh-red); }
+  .bnh-input--error:focus { box-shadow: 0 0 0 2px color-mix(in oklch, var(--bnh-red) 20%, transparent); }
+  .bnh-input-error { margin: 0; font-family: var(--bnh-font-sans, inherit); font-size: 12px; line-height: 1.5; color: var(--bnh-red); }
+  @media (prefers-reduced-motion: reduce) { .bnh-input { transition: none; } }
+}

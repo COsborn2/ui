@@ -1,0 +1,7 @@
+@layer components {
+  .bnh-ghost-text-button { box-sizing: border-box; cursor: pointer; border-radius: 6px; border: 0; background: transparent; padding: 6px; font-family: var(--bnh-font-sans, inherit); font-size: 13px; line-height: 1.5; color: var(--bnh-text-mute); transition: color 150ms; }
+  .bnh-ghost-text-button:hover { color: var(--bnh-text); }
+  .bnh-ghost-text-button:focus-visible { outline: 2px solid var(--bnh-accent); outline-offset: 2px; }
+  .bnh-ghost-text-button:disabled { opacity: .4; cursor: not-allowed; }
+  @media (prefers-reduced-motion: reduce) { .bnh-ghost-text-button { transition: none; } }
+}

@@ -1,0 +1,25 @@
+import "@cosborn2/ui/notice.css";
+import { Notice } from "@cosborn2/ui/notice";
+import "@cosborn2/ui/toast.css";
+import { ToastExamples } from "../components/toast-examples";
+import "@cosborn2/ui/actions-menu.css";
+import { ActionsMenuExamples } from "../components/actions-menu-examples";
+import { CompositionExamples } from "../components/composition-examples";
+import { hydrateRoot } from "react-dom/client";
+import { ControlExamples } from "../components/control-examples";
+import { DialogExamples } from "../components/dialog-examples";
+import "@cosborn2/ui/theme.css";
+import "@cosborn2/ui/button.css";
+import "@cosborn2/ui/input.css";
+import "@cosborn2/ui/modal.css";
+import "@cosborn2/ui/confirm-dialog.css";
+import "../app/fixture.css";
+import "@cosborn2/ui/data-table.css";
+import "@cosborn2/ui/pagination.css";
+import "@cosborn2/ui/theme-toggle.css";
+import "@cosborn2/ui/color-picker.css";
+import "@cosborn2/ui/header-shell.css";
+import "@cosborn2/ui/expandable-pill.css";
+
+const container = document.getElementById("fixture-root")!;
+hydrateRoot(container, <><DialogExamples initialOpen={container.dataset.initialOpen === "true"} /><ControlExamples /><CompositionExamples /><Notice heading="Shared feedback">Plain React notice without Tailwind</Notice><ToastExamples /><ActionsMenuExamples /></>);
