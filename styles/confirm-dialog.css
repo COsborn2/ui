@@ -1,0 +1,8 @@
+@import "./modal.css";
+@import "./button.css";
+@import "./input.css";
+@layer components {
+  .bnh-confirm-actions { display: flex; justify-content: flex-end; gap: 12px; }
+  .bnh-confirm-message { margin: 0; font-size: 14px; line-height: 1.5; color: var(--bnh-text-dim); }
+  .bnh-confirm-input { margin-top: 16px; }
+}

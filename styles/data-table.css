@@ -1,0 +1,15 @@
+@import "./skeleton.css";
+
+@layer components {
+  .bnh-data-table { box-sizing: border-box; overflow-x: auto; border: 1px solid var(--bnh-border); border-radius: var(--bnh-radius-xl); background: var(--bnh-bg-2); color: var(--bnh-text); font-family: var(--bnh-font-sans, inherit); line-height: 1.5; }
+  .bnh-data-table__table { width: 100%; min-width: 720px; border-collapse: collapse; border-spacing: 0; }
+  .bnh-data-table__table thead tr, .bnh-data-table__table tbody tr:not(:last-child) { border-bottom: 1px solid var(--bnh-border); }
+  .bnh-data-table__table th { padding: 12px 16px; text-align: left; font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: .05em; color: var(--bnh-text-dim); }
+  .bnh-data-table__table td { padding: 12px 16px; font-size: 14px; }
+  .bnh-data-table__table .bnh-data-table__empty { padding: 48px 16px; text-align: center; color: var(--bnh-text-dim); }
+  .bnh-data-table__caption { padding: 12px 16px; text-align: left; font-size: 14px; font-weight: 500; }
+  .bnh-data-table__skeleton { height: 16px; width: 75%; }
+  .bnh-data-table__row--interactive { cursor: pointer; }
+  .bnh-data-table__row--interactive:hover { background: var(--bnh-hover); }
+  .bnh-data-table__row--interactive:focus-visible { outline: 2px solid var(--bnh-accent); outline-offset: -2px; }
+}

@@ -1,0 +1,11 @@
+@layer components {
+  .bnh-icon-button { box-sizing: border-box; display: inline-flex; width: 32px; height: 32px; flex-shrink: 0; align-items: center; justify-content: center; padding: 0; border: 0; border-radius: 8px; background: transparent; color: var(--bnh-text-mute); font: inherit; cursor: pointer; transition: background-color 100ms, color 100ms, opacity 100ms, transform 100ms; }
+  .bnh-icon-button:active { transform: scale(.98); }
+  .bnh-icon-button:focus-visible { opacity: 1; outline: 2px solid color-mix(in oklch, var(--bnh-accent) 55%, transparent); outline-offset: 2px; }
+  .bnh-icon-button--neutral:hover { background: var(--bnh-surface-2); color: var(--bnh-text); }
+  .bnh-icon-button--danger:hover { background: color-mix(in oklch, var(--bnh-red) 12%, transparent); color: var(--bnh-red); }
+  .bnh-icon-button--danger:focus-visible { outline-color: color-mix(in oklch, var(--bnh-red) 55%, transparent); }
+  .bnh-icon-button:disabled { opacity: .4; cursor: not-allowed; }
+  @media (min-width: 640px) and (hover: hover) { .bnh-icon-button--reveal { opacity: 0; } :where(.group, [data-bnh-group]):hover .bnh-icon-button--reveal, :where(.group, [data-bnh-group]):focus-within .bnh-icon-button--reveal, .bnh-icon-button--reveal:focus-visible { opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { .bnh-icon-button { transition: none; } .bnh-icon-button:active { transform: none; } }
+}

@@ -1,0 +1,24 @@
+version: 2
+updates:
+  - package-ecosystem: "bun"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    groups:
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+    ignore:
+      # 0.577.0 is verified in the React Server Component fixture. Later Lucide
+      # implementations may introduce a client context. Upgrade deliberately,
+      # with the RSC and per-component bundle checks, including patch releases.
+      - dependency-name: "lucide-react"
+        versions: ["*"]
+    open-pull-requests-limit: 10
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+    open-pull-requests-limit: 5

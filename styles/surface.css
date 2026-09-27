@@ -1,0 +1,6 @@
+@layer components {
+  .bnh-surface { box-sizing: border-box; color: var(--bnh-text); border: 1px solid var(--bnh-border); border-radius: var(--bnh-radius-lg); }
+  .bnh-surface--raised { background: var(--bnh-bg-2); }
+  .bnh-surface--glass { background: var(--bnh-surface); border-color: var(--bnh-border-2); -webkit-backdrop-filter: blur(24px) saturate(1.4); backdrop-filter: blur(24px) saturate(1.4); box-shadow: var(--bnh-glass-shadow); }
+  .bnh-surface--frosted { background: var(--bnh-frosted-background); border-color: var(--bnh-border-2); -webkit-backdrop-filter: blur(32px) saturate(1.5); backdrop-filter: blur(32px) saturate(1.5); box-shadow: var(--bnh-popover-shadow); }
+}

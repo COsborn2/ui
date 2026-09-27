@@ -1,0 +1,5 @@
+@layer components {
+  .bnh-glass-popover { box-sizing: border-box; overflow: hidden; background: var(--bnh-popover-background, radial-gradient(ellipse 110% 65% at 50% -10%, color-mix(in oklch, var(--bnh-accent) 16%, transparent) 0%, transparent 70%), linear-gradient(135deg, color-mix(in oklch, white 8%, transparent), transparent 48%), color-mix(in oklch, var(--bnh-bg) 48%, transparent)); -webkit-backdrop-filter: blur(var(--bnh-popover-backdrop-blur, 56px)) saturate(1.7) contrast(.92); backdrop-filter: blur(var(--bnh-popover-backdrop-blur, 56px)) saturate(1.7) contrast(.92); border: 1px solid var(--bnh-border-2); box-shadow: var(--bnh-popover-shadow, 0 1px 0 rgb(255 255 255 / 6%) inset, 0 -1px 0 rgb(0 0 0 / 20%) inset, 0 24px 70px rgb(0 0 0 / 50%), 0 6px 20px rgb(0 0 0 / 35%)); }
+  button.bnh-glass-popover { font-family: var(--bnh-font-sans, inherit); color: var(--bnh-text); cursor: pointer; }
+  button.bnh-glass-popover:focus-visible { outline: 2px solid var(--bnh-accent); outline-offset: 2px; }
+}

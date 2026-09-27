@@ -1,0 +1,14 @@
+@layer components {
+  .bnh-switch { position: relative; display: inline-flex; align-items: center; gap: 10px; cursor: pointer; font-family: var(--bnh-font-sans, inherit); }
+  .bnh-switch-input { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+  .bnh-switch-track { box-sizing: border-box; position: relative; width: var(--bnh-switch-width, 36px); height: var(--bnh-switch-height, 20px); flex-shrink: 0; border: 0; border-radius: 999px; background: var(--bnh-switch-inactive, var(--bnh-surface-2)); transition: background .15s; }
+  .bnh-switch-track::after { content: ""; position: absolute; top: var(--bnh-switch-inset, 2px); left: var(--bnh-switch-inset, 2px); width: var(--bnh-switch-thumb, 16px); height: var(--bnh-switch-thumb, 16px); border-radius: 50%; background: white; box-shadow: 0 1px 3px rgb(0 0 0 / 20%); transition: transform .15s; }
+  .bnh-switch-input:checked + .bnh-switch-track { background: var(--bnh-switch-active, var(--bnh-accent)); }
+  .bnh-switch-input:checked + .bnh-switch-track::after { transform: translateX(calc(var(--bnh-switch-width, 36px) - var(--bnh-switch-thumb, 16px) - 2 * var(--bnh-switch-inset, 2px))); background: white; }
+  .bnh-switch-input:focus-visible + .bnh-switch-track { outline: 2px solid var(--bnh-accent); outline-offset: 3px; }
+  .bnh-switch-input:disabled ~ span { opacity: .5; cursor: not-allowed; }
+  .bnh-switch-copy { display: flex; flex-direction: column; gap: 2px; }
+  .bnh-switch-label { font-size: 13px; font-weight: 500; line-height: 1.5; color: var(--bnh-text); }
+  .bnh-switch-description { font-size: 11.5px; line-height: 1.45; color: var(--bnh-text-mute); }
+  @media (prefers-reduced-motion: reduce) { .bnh-switch-track, .bnh-switch-track::after { transition: none; } }
+}

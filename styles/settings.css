@@ -1,0 +1,434 @@
+@layer components {
+  .bnh-settings-page {
+    position: relative;
+    min-height: calc(100svh - var(--bnh-page-offset, 0px));
+    overflow: hidden;
+  }
+  .bnh-settings-shell {
+    position: relative;
+    display: flex;
+    height: calc(100svh - var(--bnh-page-offset, 0px));
+    flex-direction: column;
+  }
+  .bnh-settings-body {
+    display: flex;
+    gap: 32px;
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+  .bnh-settings-main {
+    flex: 1;
+    min-width: 0;
+    overflow-y: auto;
+    padding-right: 8px;
+  }
+  .bnh-settings-content {
+    padding-top: 108px;
+    padding-bottom: 40px;
+    max-width: 720px;
+  }
+  .bnh-settings-title {
+    margin: 0;
+    font-size: 44px;
+    line-height: 1;
+    letter-spacing: 0;
+    color: var(--bnh-text);
+    overflow-wrap: anywhere;
+  }
+  .bnh-settings-rail {
+    width: 220px;
+    flex-shrink: 0;
+    border-right: 1px solid var(--bnh-border);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    align-self: stretch;
+  }
+  .bnh-settings-rail-inner {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding-top: 108px;
+    padding-bottom: 24px;
+  }
+  .bnh-settings-rail-group {
+    font-size: 10px;
+    color: var(--bnh-text-mute);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 16px 14px 6px;
+  }
+  .bnh-settings-rail-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 14px;
+    border: none;
+    border-left: 2px solid transparent;
+    cursor: pointer;
+    background: transparent;
+    color: var(--bnh-text-dim);
+    font-size: 13px;
+    font-family: inherit;
+    text-align: left;
+    transition: background 0.1s, color 0.1s, border-color 0.1s;
+    width: 100%;
+  }
+  .bnh-settings-rail-item:hover {
+    color: var(--bnh-text);
+  }
+  .bnh-settings-rail-item.is-active {
+    background: var(--bnh-bg-2);
+    color: var(--bnh-text);
+    border-left-color: var(--bnh-accent);
+  }
+  .bnh-settings-card {
+    border-radius: 12px;
+    padding: 22px;
+  }
+  .bnh-settings-card-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  .bnh-settings-row {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding: 14px 0;
+    border-top: 1px solid var(--bnh-border);
+  }
+  .bnh-settings-row.is-first {
+    border-top: none;
+  }
+  .bnh-settings-row.is-vertical {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .bnh-settings-row-label {
+    width: 200px;
+    flex-shrink: 0;
+  }
+  .bnh-settings-row.is-vertical .bnh-settings-row-label {
+    width: auto;
+  }
+  .bnh-settings-row-control {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    flex-wrap: wrap;
+  }
+  @media (max-width: 760px) {
+    .bnh-settings-page {
+      overflow-x: hidden;
+      overflow-y: auto;
+    }
+  }
+  @media (max-width: 760px) {
+    .bnh-settings-shell {
+      min-height: calc(100svh - var(--bnh-page-offset, 0px));
+      height: auto;
+    }
+  }
+  @media (max-width: 760px) {
+    .bnh-settings-body {
+      flex-direction: column;
+      gap: 18px;
+      min-height: auto;
+      padding: 92px 16px calc(96px + env(safe-area-inset-bottom));
+    }
+  }
+  @media (max-width: 760px) {
+    .bnh-settings-main {
+      overflow: visible;
+      padding-right: 0;
+    }
+  }
+  @media (max-width: 760px) {
+    .bnh-settings-content {
+      max-width: none;
+      padding-top: 0;
+      padding-bottom: 0;
+    }
+  }
+  @media (max-width: 760px) {
+    .bnh-settings-rail {
+      width: 100%;
+      align-self: auto;
+      border-right: none;
+      border-bottom: 1px solid var(--bnh-border);
+    }
+  }
+  @media (max-width: 760px) {
+    .bnh-settings-rail-inner {
+      flex-direction: row;
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding-top: 0;
+      padding-bottom: 8px;
+      gap: 8px;
+    }
+  }
+  @media (max-width: 760px) {
+    .bnh-settings-rail-section {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+  }
+  @media (max-width: 760px) {
+    .bnh-settings-rail-group {
+      display: none;
+    }
+  }
+  @media (max-width: 760px) {
+    .bnh-settings-rail-item {
+      width: auto;
+      white-space: nowrap;
+      border-left: none;
+      border-bottom: 2px solid transparent;
+      border-radius: 8px 8px 0 0;
+      padding: 8px 10px;
+    }
+  }
+  @media (max-width: 760px) {
+    .bnh-settings-rail-item.is-active {
+      border-left-color: transparent;
+      border-bottom-color: var(--bnh-accent);
+    }
+  }
+  @media (max-width: 760px) {
+    .bnh-settings-row:not(.is-vertical) {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 8px;
+    }
+  }
+  @media (max-width: 760px) {
+    .bnh-settings-row-label {
+      width: auto;
+    }
+  }
+  @media (max-width: 600px) {
+    .bnh-settings-title {
+      font-size: 34px;
+    }
+  }
+  @media (max-width: 600px) {
+    .bnh-settings-body {
+      padding-left: 12px;
+      padding-right: 12px;
+    }
+  }
+  @media (max-width: 600px) {
+    .bnh-settings-card {
+      padding: 16px;
+    }
+  }
+  @media (max-width: 600px) {
+    .bnh-settings-card-header {
+      flex-direction: column;
+    }
+  }
+  .bnh-settings-page {
+    color: var(--bnh-text);
+    font-family: var(--bnh-font-sans, sans-serif);
+  }
+  .bnh-settings-page *, .bnh-settings-card, .bnh-settings-row, .bnh-settings-section, .bnh-settings-rail, .bnh-settings-rail * {
+    box-sizing: border-box;
+  }
+  .bnh-settings-page-header {
+    margin-bottom: 24px;
+  }
+  .bnh-settings-eyebrow {
+    margin-bottom: 8px;
+    font-family: var(--bnh-font-mono, monospace);
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--bnh-text-mute);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  .bnh-settings-title {
+    font-family: var(--bnh-font-display, serif);
+    font-weight: 400;
+  }
+  .bnh-settings-description {
+    margin: 8px 0 0;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--bnh-text-dim);
+  }
+  .bnh-settings-rail {
+    font-family: var(--bnh-font-sans, sans-serif);
+  }
+  .bnh-settings-rail-inner {
+    scrollbar-width: none;
+  }
+  .bnh-settings-rail-inner::-webkit-scrollbar {
+    display: none;
+  }
+  .bnh-settings-rail-group {
+    font-family: var(--bnh-font-mono, monospace);
+    line-height: 1.5;
+  }
+  .bnh-settings-rail-item {
+    line-height: 1.5;
+    text-decoration: none;
+  }
+  .bnh-settings-rail-item:focus-visible {
+    outline: 2px solid var(--bnh-accent);
+    outline-offset: -2px;
+  }
+  .bnh-settings-rail-icon {
+    width: 14px;
+    display: inline-flex;
+    justify-content: center;
+    opacity: 0.7;
+  }
+  .bnh-settings-rail-item.is-active .bnh-settings-rail-icon {
+    opacity: 1;
+  }
+  .bnh-settings-rail-label {
+    flex: 1;
+    font-weight: 400;
+  }
+  .bnh-settings-rail-item.is-active .bnh-settings-rail-label {
+    font-weight: 500;
+  }
+  .bnh-settings-rail-badge {
+    font-family: var(--bnh-font-mono, monospace);
+    font-size: 10px;
+    color: var(--bnh-text-mute);
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: var(--bnh-surface);
+  }
+  .bnh-settings-card {
+    background: var(--bnh-bg-2);
+    border: 1px solid var(--bnh-border);
+  }
+  .bnh-settings-card--danger {
+    border-color: color-mix(in oklch, var(--bnh-red) 30%, var(--bnh-border));
+  }
+  .bnh-settings-card-header {
+    margin-bottom: 14px;
+  }
+  .bnh-settings-card-header--description {
+    margin-bottom: 18px;
+  }
+  .bnh-settings-card-heading {
+    flex: 1;
+  }
+  .bnh-settings-card-title {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.5;
+    font-weight: 600;
+    letter-spacing: -0.005em;
+    color: var(--bnh-text);
+  }
+  .bnh-settings-card-header--danger .bnh-settings-card-title {
+    color: var(--bnh-red);
+  }
+  .bnh-settings-card-subtitle {
+    margin: 4px 0 0;
+    font-size: 12.5px;
+    color: var(--bnh-text-dim);
+    line-height: 1.5;
+  }
+  .bnh-settings-row-title {
+    font-size: 13px;
+    line-height: 1.5;
+    font-weight: 500;
+    color: var(--bnh-text);
+  }
+  .bnh-settings-row-hint {
+    font-size: 11.5px;
+    color: var(--bnh-text-mute);
+    margin-top: 2px;
+    line-height: 1.45;
+  }
+  .bnh-settings-section {
+    border-radius: var(--bnh-radius-lg, 16px);
+    border: 1px solid var(--bnh-border);
+    background: var(--bnh-bg-2);
+    padding: 16px;
+  }
+  .bnh-settings-section--purple {
+    border-color: color-mix(in oklch, var(--bnh-accent) 20%, transparent);
+    background: color-mix(in oklch, var(--bnh-accent) 5%, transparent);
+  }
+  .bnh-settings-section--rose {
+    border-color: color-mix(in oklch, var(--bnh-red) 20%, transparent);
+    background: color-mix(in oklch, var(--bnh-red) 5%, transparent);
+  }
+  .bnh-settings-section-header {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .bnh-settings-section-header--description {
+    margin-bottom: 8px;
+  }
+  .bnh-settings-section-title {
+    margin: 0;
+    font-family: var(--bnh-font-display, serif);
+    font-size: 18px;
+    line-height: 28px;
+    font-weight: 600;
+  }
+  .bnh-settings-section--rose .bnh-settings-section-title {
+    color: var(--bnh-red);
+  }
+  .bnh-settings-section-subtitle {
+    margin: 0 0 16px;
+    font-size: 14px;
+    line-height: 20px;
+    color: var(--bnh-text-dim);
+  }
+  .bnh-settings-enter {
+    animation: bnh-settings-fade-up 0.4s ease-out both;
+  }
+  @keyframes bnh-settings-fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @media (min-width: 640px) {
+    .bnh-settings-section {
+      padding: 24px;
+    }
+    .bnh-settings-section-header {
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .bnh-settings-enter {
+      animation: none;
+    }
+    .bnh-settings-rail-item {
+      transition: none;
+    }
+  }
+}

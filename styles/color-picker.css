@@ -1,0 +1,11 @@
+@layer components {
+  .bnh-color-picker { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .bnh-color-picker > button { box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 50%; font: inherit; cursor: pointer; transition: transform 150ms, box-shadow 150ms; }
+  .bnh-color-picker > button:hover { transform: scale(1.05); }
+  .bnh-color-picker > button[aria-pressed="true"] { transform: scale(1.1); box-shadow: 0 0 0 2px var(--bnh-bg), 0 0 0 4px currentColor; }
+  .bnh-color-picker > .bnh-color-picker-none { border: 2px solid var(--bnh-border); background: transparent; color: var(--bnh-text-mute); }
+  .bnh-color-picker > .bnh-color-picker-none[aria-pressed="true"] { border-color: var(--bnh-primary); box-shadow: 0 0 0 2px color-mix(in oklch, var(--bnh-primary) 30%, transparent); }
+  .bnh-color-picker > button:focus-visible { outline: 2px solid var(--bnh-text); outline-offset: 5px; }
+  .bnh-color-picker > button:disabled { cursor: not-allowed; opacity: .4; transform: none; }
+  @media (prefers-reduced-motion: reduce) { .bnh-color-picker > button { transition: none; } }
+}
