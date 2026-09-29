@@ -239,6 +239,33 @@ export function evaluateDependencyPolicy(input: DependencyPolicyInput): Dependen
   return { allowed: true, kind: "release", reason: "Verified next-version-only release of merged dependency changes.", subject: `${title} (#${pr.number})` };
 }
 
+export interface PolicyReview {
+  id: number;
+  user: { login: string } | null;
+  state: string;
+  commit_id: string;
+}
+
+/** GitHub returns reviews in chronological order; comments do not resolve a prior decision. */
+export function dependencyReviewState(reviews: PolicyReview[], head: string) {
+  const latest = new Map<string, PolicyReview>();
+  for (const review of reviews) {
+    if (["APPROVED", "CHANGES_REQUESTED", "DISMISSED"].includes(review.state)) {
+      latest.set(review.user?.login ?? `deleted-reviewer:${review.id}`, review);
+    }
+  }
+  const automation = latest.get("github-actions[bot]");
+  return {
+    changesRequested: [...latest.values()].some((review) => review.state === "CHANGES_REQUESTED"),
+    automationApproved: automation?.state === "APPROVED" && automation.commit_id === head,
+  };
+}
+
+export interface DependencyPolicyInspection {
+  decision: DependencyPolicyDecision;
+  input: DependencyPolicyInput;
+}
+
 interface VerificationRun {
   id: number;
   name: string;
@@ -290,7 +317,7 @@ function metadataFromCommits(commits: PolicyCommit[]): MetadataDependency[] {
   return [...updates.values()];
 }
 
-if (import.meta.main) {
+export function inspectDependencyPolicy(): DependencyPolicyInspection {
   const repository = process.env.GITHUB_REPOSITORY ?? "";
   if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repository)) throw new Error("Invalid repository.");
   const event = JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH!, "utf8")) as {
@@ -354,8 +381,17 @@ if (import.meta.main) {
       sourceContainsMerge: comparison?.status === "ahead" || comparison?.status === "identical",
     };
   }
-  const decision = evaluateDependencyPolicy(input);
-  console.log(`${decision.allowed ? "Eligible for approval" : "Manual review required"}: ${decision.reason}`);
+  let decision = evaluateDependencyPolicy(input);
+  if (decision.allowed && dependencyReviewState(github<PolicyReview[]>(`${endpoint}/reviews`, true), pr.head.sha).changesRequested) {
+    decision = { allowed: false, reason: "An active changes-requested review requires human resolution." };
+  }
+  return { decision, input };
+}
+
+if (import.meta.main) {
+  const { decision, input } = inspectDependencyPolicy();
+  const pr = input.pullRequest;
+  console.log(`${decision.allowed ? "Eligible for approval and merge" : "Manual review required"}: ${decision.reason}`);
   if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT,
-    `allowed=${decision.allowed}\nhead_sha=${pr.head.sha}\npr_number=${pr.number}\nkind=${decision.kind ?? ""}\n`);
+    `allowed=${decision.allowed}\nhead_sha=${pr.head.sha}\nbase_sha=${pr.base.sha}\npr_number=${pr.number}\nkind=${decision.kind ?? ""}\n`);
 }

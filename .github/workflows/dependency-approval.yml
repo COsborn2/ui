@@ -1,4 +1,4 @@
-name: Dependency approvals
+name: Dependency approvals and merges
 
 on:
   workflow_run:
@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       pull_request_number:
-        description: Open dependency or generated release PR to re-evaluate after successful CI
+        description: Open dependency or generated release PR to approve and merge after successful CI
         required: true
         type: number
 
@@ -21,7 +21,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  approve:
+  approve-and-merge:
     if: >-
       github.ref == 'refs/heads/main' &&
       (github.event_name == 'workflow_dispatch' ||
@@ -58,7 +58,18 @@ jobs:
           [[ "$current_head" == "$PR_HEAD_SHA" ]] || { echo "::error::PR head changed; successful CI and a new policy run are required."; exit 1; }
           existing="$(gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/reviews" --jq ".[] | select(.user.login == \"github-actions[bot]\" and .state == \"APPROVED\" and .commit_id == \"$PR_HEAD_SHA\") | .id")"
           if [[ -z "$existing" ]]; then
-            jq -n --arg commit "$PR_HEAD_SHA" '{event:"APPROVE",commit_id:$commit,body:"Automated dependency/release policy approval of this exact commit after successful verification. Required CI and code-owner review remain enforced."}' > "$RUNNER_TEMP/dependency-approval.json"
+            jq -n --arg commit "$PR_HEAD_SHA" '{event:"APPROVE",commit_id:$commit,body:"Automated dependency/release policy approval of this exact commit after successful verification. Required CI remains enforced. Automatic merge may use the repository owner’s existing review-only PR exception."}' > "$RUNNER_TEMP/dependency-approval.json"
             gh api --method POST "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/reviews" --input "$RUNNER_TEMP/dependency-approval.json"
           fi
-      # Approval does not merge or enable auto-merge; repository rules govern merging.
+      - name: Revalidate and squash merge the approved commit
+        if: steps.policy.outputs.allowed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEPENDABOT_AUTOMERGE_PAT: ${{ secrets.DEPENDABOT_AUTOMERGE_PAT }}
+          RELEASE_AUTHOR: ${{ github.repository_owner }}
+          PR_NUMBER: ${{ steps.policy.outputs.pr_number }}
+          PR_HEAD_SHA: ${{ steps.policy.outputs.head_sha }}
+          PR_BASE_SHA: ${{ steps.policy.outputs.base_sha }}
+        # The PAT is exposed only here, so post-merge push/publish workflows run.
+        # Reuse only the owner's existing review exception; core CI has no bypass.
+        run: bun scripts/dependency-merge.ts
