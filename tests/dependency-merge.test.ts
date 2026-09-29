@@ -14,7 +14,7 @@ function fixture() {
   const inspection: DependencyPolicyInspection = {
     decision: { allowed: true, kind: "dependency", reason: "Validated", subject: "fix(deps): update reviewed dependencies (#42)" },
     input: {
-      repository, actor: "dependabot[bot]", expectedHead: head, trustedReleaseAuthor: "COsborn2",
+      repository, actor: "dependabot[bot]", expectedHead: head,
       pullRequest: { number: 42, title: "Dependency update [skip ci]", body: "Upstream notes", state: "open", draft: false,
         user: { login: "dependabot[bot]" }, base: { ref: "main", sha: base, repo: { full_name: repository } },
         head: { ref: "dependabot/bun/example", sha: head, repo: { full_name: repository } }, commits: 1, changed_files: 2 },
@@ -70,6 +70,20 @@ describe("dependency merge", () => {
     expect(denied.calls).toHaveLength(0);
   });
 
+  test("cannot merge a maintainer PR even if an inspection incorrectly allows it", async () => {
+    const context = fixture();
+    context.inspection.input.pullRequest.user.login = "COsborn2";
+    await expect(runDependencyMerge(context.options)).rejects.toThrow("policy, CI");
+    expect(context.calls).toHaveLength(0);
+  });
+
+  test("uses the controlled CI-only subject for an eligible action update", async () => {
+    const context = fixture();
+    context.inspection.decision.subject = "chore(ci): update reviewed actions (#42)";
+    await runDependencyMerge(context.options);
+    expect(context.calls.find((call) => call.method === "PUT")?.body?.commit_title).toBe("chore(ci): update reviewed actions (#42)");
+  });
+
   test.each(["expectedPr", "expectedHead", "expectedBase"] as const)("does not widen validation when %s changes", async (field) => {
     const context = fixture();
     const options = { ...context.options, [field]: field === "expectedPr" ? 43 : merged };
@@ -86,7 +100,7 @@ describe("dependency merge", () => {
     ["forked head", (x) => { x.current.head.repo = { full_name: "outside/ui" }; }],
     ["changed author", (x) => { x.current.user.login = "someone"; }],
     ["changed title", (x) => { x.current.title = "Another change"; }],
-    ["changed release marker/body", (x) => { x.current.body = "Another marker"; }],
+    ["changed PR body", (x) => { x.current.body = "Different dependency metadata"; }],
     ["draft conversion", (x) => { x.current.draft = true; }],
     ["closed PR", (x) => { x.current.state = "closed"; }],
     ["no automated approval", (x) => { x.state.reviews = []; }],

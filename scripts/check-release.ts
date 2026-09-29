@@ -1,8 +1,10 @@
 import { readFile, access } from "node:fs/promises";
 import { resolve } from "node:path";
+import { releaseChannel } from "./release-policy.js";
 
 const root = resolve(import.meta.dir, "..");
 const pkg = JSON.parse(await readFile(resolve(root, "package.json"), "utf8"));
+releaseChannel(pkg.version); // Reject the development placeholder before npm publication.
 if (pkg.license === "UNLICENSED" || !pkg.license) {
   throw new Error("Choose the public package license and add LICENSE before publishing @cosborn2/ui.");
 }

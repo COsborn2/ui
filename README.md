@@ -8,6 +8,6 @@ Plain CSS, shared theme tokens, and individual component imports. Works without 
 npm install @cosborn2/ui@beta
 ```
 
-[Component guide](https://github.com/COsborn2/ui/blob/main/docs/components.md) · [Contributing](https://github.com/COsborn2/ui/blob/main/CONTRIBUTING.md)
+[Component guide](https://github.com/COsborn2/ui/blob/main/docs/components.md) · [Versioning](https://github.com/COsborn2/ui/blob/main/versioning.md) · [Contributing](https://github.com/COsborn2/ui/blob/main/CONTRIBUTING.md)
 
 MIT licensed. Requires React 19.

@@ -1,7 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { appendFileSync, readFileSync } from "node:fs";
 import { isDeepStrictEqual } from "node:util";
-import { nextDependencyReleaseVersion, parseDependencyReleaseMarker, replacePackageVersion } from "./dependency-release.js";
 
 const BOT = "dependabot[bot]";
 const SHA = /^[a-f0-9]{40}$/;
@@ -19,15 +18,11 @@ export interface PolicyPullRequest {
   head: { ref: string; sha: string; repo: { full_name: string } | null };
   commits: number;
   changed_files: number;
-  merged?: boolean;
-  merge_commit_sha?: string | null;
 }
 export interface PolicyCommit {
   sha: string;
   author: { login: string } | null;
-  committer?: { login: string } | null;
   commit: { verification?: { verified: boolean }; message?: string };
-  parents: { sha: string }[];
 }
 export interface PolicyFile { filename: string; status: string; previous_filename?: string }
 export interface PolicyWorkflowFile { filename: string; before: string; after: string }
@@ -36,7 +31,6 @@ export interface DependencyPolicyInput {
   /** Actor of the successful CI run, not an untrusted PR body value. */
   actor: string;
   expectedHead: string;
-  trustedReleaseAuthor: string;
   pullRequest: PolicyPullRequest;
   commits: PolicyCommit[];
   files: PolicyFile[];
@@ -48,17 +42,11 @@ export interface DependencyPolicyInput {
   baseLockfile?: unknown;
   headLockfile?: unknown;
   workflowFiles?: PolicyWorkflowFile[];
-  releaseOrigin?: {
-    pullRequest: PolicyPullRequest;
-    commits: PolicyCommit[];
-    files: PolicyFile[];
-    sourceContainsMerge: boolean;
-  };
 }
 export interface DependencyPolicyDecision {
   allowed: boolean;
   reason: string;
-  kind?: "dependency" | "release";
+  kind?: "dependency";
   subject?: string;
 }
 interface MetadataDependency { dependencyName: string; updateType: string }
@@ -180,63 +168,41 @@ export function evaluateDependencyPolicy(input: DependencyPolicyInput): Dependen
   const after = manifest(input.headPackageJson);
   if (!before || !after) return deny("Invalid package manifest.");
 
-  if (pr.user.login === BOT) {
-    if (input.actor !== BOT || !botCommits(commits)) return deny("Only verified Dependabot-authored commits and CI runs are eligible.");
-    const metadata = parsedMetadata(input.metadata);
-    if (!metadata || metadata.some((item) => item.dependencyName === "lucide-react")) return deny("Missing safe update metadata or a deliberately pinned Lucide update.");
-    if (!unchangedContract(before, after)) return deny("Package metadata, scripts, dependency membership, or peer contracts changed.");
-    const packageFiles = files.every((file) => file.filename === "package.json" || file.filename === "bun.lock");
-    const actionFiles = files.every((file) => /^\.github\/workflows\/[A-Za-z0-9_.-]+\.ya?ml$/.test(file.filename));
-    if (!packageFiles && !actionFiles) return deny("Only manifest/lock updates or existing workflow action pins are eligible.");
-    if (actionFiles) {
-      if (!isDeepStrictEqual(before, after) || !input.workflowFiles || input.workflowFiles.length !== files.length
-        || !files.every((file) => input.workflowFiles!.some((content) => content.filename === file.filename))
-        || !safeActionChanges(input.workflowFiles, metadata)) return deny("Workflow update changes more than supported stable action pins.");
-    } else {
-      const oldDependencies = dependencyMap(before);
-      const newDependencies = dependencyMap(after);
-      if (!oldDependencies || !newDependencies) return deny("Unsupported dependency declarations.");
-      for (const item of metadata) {
-        // Resolve every group member from actual manifest/lock data, not release-note prose.
-        const oldRange = manifestVersion(oldDependencies[item.dependencyName]);
-        const newRange = manifestVersion(newDependencies[item.dependencyName]);
-        const previous = input.baseLockfile === undefined ? oldRange?.version : lockedVersion(input.baseLockfile, item.dependencyName);
-        const next = input.headLockfile === undefined ? newRange?.version : lockedVersion(input.headLockfile, item.dependencyName);
-        if (!previous || !next || !safeVersionChange(previous, next, item.updateType)) return deny("Prerelease, major, pre-1.0 minor, downgrade, or unclassified update requires review.");
-      }
-      for (const [name, range] of Object.entries(oldDependencies)) {
-        if (range === newDependencies[name]) continue;
-        const item = metadata.find((dependency) => dependency.dependencyName === name);
-        const a = manifestVersion(range);
-        const b = manifestVersion(newDependencies[name]);
-        if (!item || !a || !b || a.operator !== b.operator || !safeVersionChange(a.version, b.version, item.updateType)) return deny("Manifest changes do not match the verified dependency metadata.");
-      }
+  if (pr.user.login !== BOT || input.actor !== BOT || !botCommits(commits)) return deny("Only verified Dependabot-authored commits and CI runs are eligible.");
+  const metadata = parsedMetadata(input.metadata);
+  if (!metadata || metadata.some((item) => item.dependencyName === "lucide-react")) return deny("Missing safe update metadata or a deliberately pinned Lucide update.");
+  if (!unchangedContract(before, after)) return deny("Package metadata, scripts, dependency membership, or peer contracts changed.");
+  const packageFiles = files.every((file) => file.filename === "package.json" || file.filename === "bun.lock");
+  const actionFiles = files.every((file) => /^\.github\/workflows\/[A-Za-z0-9_.-]+\.ya?ml$/.test(file.filename));
+  if (!packageFiles && !actionFiles) return deny("Only manifest/lock updates or existing workflow action pins are eligible.");
+  if (actionFiles) {
+    if (!isDeepStrictEqual(before, after) || !input.workflowFiles || input.workflowFiles.length !== files.length
+      || !files.every((file) => input.workflowFiles!.some((content) => content.filename === file.filename))
+      || !safeActionChanges(input.workflowFiles, metadata)) return deny("Workflow update changes more than supported stable action pins.");
+  } else {
+    const oldDependencies = dependencyMap(before);
+    const newDependencies = dependencyMap(after);
+    if (!oldDependencies || !newDependencies) return deny("Unsupported dependency declarations.");
+    for (const item of metadata) {
+      // Resolve every group member from actual manifest/lock data, not release-note prose.
+      const oldRange = manifestVersion(oldDependencies[item.dependencyName]);
+      const newRange = manifestVersion(newDependencies[item.dependencyName]);
+      const previous = input.baseLockfile === undefined ? oldRange?.version : lockedVersion(input.baseLockfile, item.dependencyName);
+      const next = input.headLockfile === undefined ? newRange?.version : lockedVersion(input.headLockfile, item.dependencyName);
+      if (!previous || !next || !safeVersionChange(previous, next, item.updateType)) return deny("Prerelease, major, pre-1.0 minor, downgrade, or unclassified update requires review.");
     }
-    return { allowed: true, kind: "dependency", reason: "Verified stable dependency update with a limited file and metadata scope.", subject: `fix(deps): update reviewed dependencies (#${pr.number})` };
+    for (const [name, range] of Object.entries(oldDependencies)) {
+      if (range === newDependencies[name]) continue;
+      const item = metadata.find((dependency) => dependency.dependencyName === name);
+      const a = manifestVersion(range);
+      const b = manifestVersion(newDependencies[name]);
+      if (!item || !a || !b || a.operator !== b.operator || !safeVersionChange(a.version, b.version, item.updateType)) return deny("Manifest changes do not match the verified dependency metadata.");
+    }
   }
-
-  if (!input.trustedReleaseAuthor || input.actor !== input.trustedReleaseAuthor || pr.user.login !== input.trustedReleaseAuthor
-    || pr.head.ref !== "automation/dependency-release") return deny("Not a trusted dependency-release author and branch.");
-  const marker = parseDependencyReleaseMarker(pr.body ?? "");
-  const next = typeof before.version === "string" ? nextDependencyReleaseVersion(before.version) : null;
-  const title = `chore: release @cosborn2/ui ${next}`;
-  if (!marker || !next || marker.source !== pr.base.sha || marker.version !== before.version || pr.title !== title
-    || after.version !== next || files.length !== 1 || files[0]!.filename !== "package.json"
-    || commits.length !== 1 || commits[0]!.author?.login !== input.trustedReleaseAuthor
-    || commits[0]!.committer?.login !== input.trustedReleaseAuthor
-    || commits[0]!.parents.length !== 1 || commits[0]!.parents[0]!.sha !== marker.source
-    || !isDeepStrictEqual(parseDependencyReleaseMarker(commits[0]!.commit.message ?? ""), marker)) return deny("Release metadata, version, author, or single-parent commit proof does not match.");
-  try {
-    if (replacePackageVersion(input.basePackageJson, next) !== input.headPackageJson) return deny("The release PR must change only the package version bytes.");
-  } catch { return deny("The release manifest has no uniquely replaceable version."); }
-  const origin = input.releaseOrigin;
-  if (!origin || origin.pullRequest.number !== marker.dependencyPr || !origin.sourceContainsMerge
-    || origin.pullRequest.merged !== true || origin.pullRequest.user.login !== BOT
-    || origin.pullRequest.base.ref !== "main" || origin.pullRequest.base.repo.full_name !== input.repository
-    || origin.pullRequest.head.repo?.full_name !== input.repository
-    || !completeSnapshot(origin.pullRequest, origin.commits, origin.files) || !botCommits(origin.commits)
-    || !modifiedOnly(origin.files) || !origin.files.every((file) => ["package.json", "bun.lock"].includes(file.filename))) return deny("The release has no verified merged Dependabot origin in its source history.");
-  return { allowed: true, kind: "release", reason: "Verified next-version-only release of merged dependency changes.", subject: `${title} (#${pr.number})` };
+  return {
+    allowed: true, kind: "dependency", reason: "Verified stable dependency update with a limited file and metadata scope.",
+    subject: actionFiles ? `chore(ci): update reviewed actions (#${pr.number})` : `fix(deps): update reviewed dependencies (#${pr.number})`,
+  };
 }
 
 export interface PolicyReview {
@@ -358,7 +324,7 @@ export function inspectDependencyPolicy(): DependencyPolicyInspection {
   const commits = github<PolicyCommit[]>(`${endpoint}/commits`, true);
   const packageOnly = files.every((file) => file.filename === "package.json" || file.filename === "bun.lock");
   const input: DependencyPolicyInput = {
-    repository, actor: run.actor.login, expectedHead: run.head_sha, trustedReleaseAuthor: process.env.RELEASE_AUTHOR ?? "",
+    repository, actor: run.actor.login, expectedHead: run.head_sha,
     pullRequest: pr, files, commits,
     basePackageJson: content(repository, "package.json", pr.base.sha), headPackageJson: content(repository, "package.json", pr.head.sha),
     metadata: pr.user.login === BOT ? metadataFromCommits(commits) : [],
@@ -370,17 +336,6 @@ export function inspectDependencyPolicy(): DependencyPolicyInspection {
       filename: file.filename, before: content(repository, file.filename, pr.base.sha), after: content(repository, file.filename, pr.head.sha),
     })),
   };
-  const marker = parseDependencyReleaseMarker(pr.body ?? "");
-  if (pr.head.ref === "automation/dependency-release" && marker) {
-    const originEndpoint = `repos/${repository}/pulls/${marker.dependencyPr}`;
-    const origin = github<PolicyPullRequest>(originEndpoint);
-    const comparison = origin.merge_commit_sha && SHA.test(origin.merge_commit_sha)
-      ? github<{ status: string }>(`repos/${repository}/compare/${origin.merge_commit_sha}...${marker.source}`) : null;
-    input.releaseOrigin = {
-      pullRequest: origin, commits: github<PolicyCommit[]>(`${originEndpoint}/commits`, true), files: github<PolicyFile[]>(`${originEndpoint}/files`, true),
-      sourceContainsMerge: comparison?.status === "ahead" || comparison?.status === "identical",
-    };
-  }
   let decision = evaluateDependencyPolicy(input);
   if (decision.allowed && dependencyReviewState(github<PolicyReview[]>(`${endpoint}/reviews`, true), pr.head.sha).changesRequested) {
     decision = { allowed: false, reason: "An active changes-requested review requires human resolution." };

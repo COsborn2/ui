@@ -4,6 +4,9 @@ updates:
     directory: "/"
     schedule:
       interval: "daily"
+    commit-message:
+      prefix: "fix"
+      include: "scope"
     groups:
       minor-and-patch:
         update-types: ["minor", "patch"]
@@ -15,6 +18,8 @@ updates:
     open-pull-requests-limit: 10
   - package-ecosystem: "github-actions"
     directory: "/"
+    commit-message:
+      prefix: "chore(ci)"
     schedule:
       interval: "weekly"
     groups:

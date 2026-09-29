@@ -20,8 +20,8 @@ export async function runDependencyMerge({ repository, readToken, mergeToken, ex
   if (!mergeToken) throw new Error("Set the repository Actions secret DEPENDABOT_AUTOMERGE_PAT to an owner token scoped to this repository; automatic merging is unavailable without it.");
   const { decision, input } = inspect();
   const validated = input.pullRequest;
-  if (!decision.allowed || !decision.subject || !["dependency", "release"].includes(decision.kind ?? "")
-    || input.repository !== repository || validated.number !== expectedPr || validated.head.sha !== expectedHead
+  if (!decision.allowed || !decision.subject || decision.kind !== "dependency"
+    || input.repository !== repository || validated.user.login !== "dependabot[bot]" || validated.number !== expectedPr || validated.head.sha !== expectedHead
     || validated.base.sha !== expectedBase || validated.base.ref !== "main" || validated.state !== "open" || validated.draft
     || validated.head.repo?.full_name !== repository || validated.base.repo.full_name !== repository) {
     throw new Error("Dependency policy, CI, or the validated PR/base/head changed; a new verification run is required.");

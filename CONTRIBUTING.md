@@ -12,7 +12,7 @@ bunx playwright install chromium
 bun run storybook
 ```
 
-Before submitting a PR, run `bun run lint`, `bun run build`, `bun run test`, `bun run build-storybook`, and `bun run check:package`. `lint` includes type checking of the library, stories, tests, and tooling. Use the [testing guide](docs/testing.md) for focused tests and conventions. `bun run dev` watches library source and styles.
+Before submitting a PR, run `bun run audit:dependencies`, `bun run lint`, `bun run build`, `bun run test`, `bun run build-storybook`, and `bun run check:package`. `lint` includes type checking of the library, stories, tests, and tooling. Use the [testing guide](docs/testing.md) for focused tests and conventions. `bun run dev` watches library source and styles.
 
 ## Component changes
 
@@ -27,8 +27,8 @@ Edit `tokens.json` for canonical theme changes; the build generates the packaged
 
 ## Review and release
 
-Pull requests require a passing, up-to-date `verify` check and resolved review conversations. Merges are squash-only. The main protection ruleset has no bypass; a separate review ruleset requires one approval, including code owner approval, and dismisses stale approvals. While there is one maintainer, repository administrators have a PR-only exception to the review rule so the owner can merge their own PRs without bypassing CI. Dependency automation also uses that review-only exception for verified dependency and generated version-only release PRs, after a commit-bound automated approval. Other PRs are not eligible for automated approval or merging. When independent reviewers are available, migrate automation to a dedicated identity before removing the administrator review exception. The [live rulesets](https://github.com/COsborn2/ui/rules) are the source of truth for enforcement.
+Pull requests require a passing, up-to-date `verify` check and resolved review conversations. Merges are squash-only. The main protection ruleset has no bypass; a separate review ruleset requires one approval, including code owner approval, and dismisses stale approvals. While there is one maintainer, repository administrators have a PR-only exception to the review rule so the owner can merge their own PRs without bypassing CI. Dependency automation also uses that review-only exception for verified Dependabot PRs, after a commit-bound automated approval. Other PRs are not eligible for automated approval or merging. When independent reviewers are available, migrate automation to a dedicated identity before removing the administrator review exception. The [live rulesets](https://github.com/COsborn2/ui/rules) are the source of truth for enforcement.
 
-Versions are committed through release PRs. Dependency automation proposes the next patch or beta increment after Bun dependency updates merge. Follow the version policy in the [publishing runbook](docs/publishing.md), update `package.json`, and commit any resulting lockfile changes. Documentation-only maintenance does not require a package release.
+Follow [versioning.md](versioning.md) for the short release guide. Only one release line on `main` is maintained. CI publishes beta/patch increments automatically; change `release.json` in the same PR when promoting to stable or starting the next minor. Do not edit the development version in `package.json`.
 
-Publishing runs through the trusted workflow after a version PR merges. The runbook covers setup, dependency automation, and retries. Do not add npm credentials to the repository or PR.
+The [publishing guide](docs/publishing.md) covers setup, dependency automation, and recovery. Do not add npm credentials to the repository or PR.

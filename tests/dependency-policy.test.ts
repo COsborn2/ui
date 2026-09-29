@@ -1,6 +1,5 @@
 import { describe, expect, test } from "vitest";
 import { evaluateDependencyPolicy, isSuccessfulVerification, type DependencyPolicyInput } from "../scripts/dependency-policy.js";
-import { dependencyReleaseBody, dependencyReleaseTitle, nextDependencyReleaseVersion, replacePackageVersion } from "../scripts/dependency-release.js";
 
 const base = "a".repeat(40);
 const head = "b".repeat(40);
@@ -13,11 +12,11 @@ const json = (value: unknown) => JSON.stringify(value, null, 2) + "\n";
 
 function dependency(): DependencyPolicyInput {
   return {
-    repository, actor: bot, expectedHead: head, trustedReleaseAuthor: "COsborn2",
+    repository, actor: bot, expectedHead: head,
     pullRequest: { number: 42, title: "Bump example [skip ci]", body: "Upstream release notes", state: "open", draft: false,
       user: { login: bot }, base: { ref: "main", sha: base, repo: { full_name: repository } },
       head: { ref: "dependabot/bun/example", sha: head, repo: { full_name: repository } }, commits: 1, changed_files: 2 },
-    commits: [{ sha: head, author: { login: bot }, commit: { verification: { verified: true } }, parents: [{ sha: base }] }],
+    commits: [{ sha: head, author: { login: bot }, commit: { verification: { verified: true } } }],
     files: [{ filename: "package.json", status: "modified" }, { filename: "bun.lock", status: "modified" }],
     basePackageJson: json(manifest), headPackageJson: json({ ...manifest, dependencies: { example: "1.2.4" } }),
     baseLockfile: { packages: { example: ["example@1.2.3"] } }, headLockfile: { packages: { example: ["example@1.2.4"] } },
@@ -38,28 +37,22 @@ function actions(): DependencyPolicyInput {
     after: `jobs:\n  verify:\n    steps:\n      - uses: actions/checkout@${head} # v4\n      - run: bun test\n` }];
   return input;
 }
-function release(version = "0.1.0-beta.0"): DependencyPolicyInput {
-  const origin = dependency();
-  const input = dependency();
-  const next = nextDependencyReleaseVersion(version)!;
-  const marker = { source: base, version, dependencyPr: origin.pullRequest.number };
-  input.actor = "COsborn2";
-  input.pullRequest = { ...input.pullRequest, number: 43, title: dependencyReleaseTitle(next), body: dependencyReleaseBody(marker),
-    user: { login: "COsborn2" }, head: { ...input.pullRequest.head, ref: "automation/dependency-release" }, changed_files: 1 };
-  input.basePackageJson = json({ ...manifest, version });
-  input.headPackageJson = replacePackageVersion(input.basePackageJson, next);
-  input.files = [{ filename: "package.json", status: "modified" }];
-  input.commits = [{ sha: head, author: { login: "COsborn2" }, committer: { login: "COsborn2" }, parents: [{ sha: base }],
-    commit: { message: `${input.pullRequest.title}\n\n<!-- dependency-release:v1 source=${base} version=${version} dependency-pr=42 -->` } }];
-  input.releaseOrigin = { pullRequest: { ...origin.pullRequest, state: "closed", merged: true }, commits: origin.commits, files: origin.files, sourceContainsMerge: true };
-  return input;
-}
-
 describe("dependency approval policy", () => {
   test("accepts a verified patch and supplies controlled squash text", () => {
     const result = evaluateDependencyPolicy(dependency());
     expect(result).toMatchObject({ allowed: true, kind: "dependency", subject: "fix(deps): update reviewed dependencies (#42)" });
     expect(result.subject).not.toContain("skip ci");
+  });
+
+  test("does not give the former generated release branch an approval exception", () => {
+    const input = dependency();
+    input.actor = "COsborn2";
+    input.pullRequest.user.login = "COsborn2";
+    input.pullRequest.head.ref = "automation/dependency-release";
+    input.pullRequest.title = "chore: release @cosborn2/ui 0.1.0-beta.1";
+    input.headPackageJson = json({ ...manifest, version: "0.1.0-beta.1" });
+    input.commits[0]!.author = { login: "COsborn2" };
+    expect(evaluateDependencyPolicy(input).allowed).toBe(false);
   });
 
   test("accepts stable grouped minor/patch updates using actual locked versions", () => {
@@ -85,6 +78,7 @@ describe("dependency approval policy", () => {
     ["stale head", (x) => { x.expectedHead = "c".repeat(40); }],
     ["draft", (x) => { x.pullRequest.draft = true; }],
     ["human actor", (x) => { x.actor = "COsborn2"; }],
+    ["human PR author", (x) => { x.pullRequest.user.login = "COsborn2"; }],
     ["human commit", (x) => { x.commits[0]!.author = { login: "COsborn2" }; }],
     ["unsigned commit", (x) => { x.commits[0]!.commit.verification = { verified: false }; }],
     ["truncated commit list", (x) => { x.pullRequest.commits = 2; }],
@@ -127,8 +121,8 @@ describe("dependency approval policy", () => {
 });
 
 describe("GitHub Actions dependency policy", () => {
-  test("accepts a SHA-only update to an existing stable action reference", () => {
-    expect(evaluateDependencyPolicy(actions()).allowed).toBe(true);
+  test("accepts a SHA-only update with a CI-only squash subject that does not trigger an npm release", () => {
+    expect(evaluateDependencyPolicy(actions())).toMatchObject({ allowed: true, kind: "dependency", subject: "chore(ci): update reviewed actions (#42)" });
   });
   test.each([
     ["command injection", (text: string) => text.replace("bun test", "echo passed")],
@@ -142,38 +136,6 @@ describe("GitHub Actions dependency policy", () => {
     expect(evaluateDependencyPolicy(input).allowed).toBe(false);
   });
 });
-
-describe("dependency release approval policy", () => {
-  test.each(["0.1.0-beta.0", "0.2.0", "1.3.9"])("accepts only the next release from %s", (version) => {
-    expect(evaluateDependencyPolicy(release(version))).toMatchObject({ allowed: true, kind: "release" });
-  });
-  const refused: [string, (input: DependencyPolicyInput) => void][] = [
-    ["arbitrary owner branch", (x) => { x.pullRequest.head.ref = "feature/version"; }],
-    ["different author", (x) => { x.pullRequest.user.login = "someone"; }],
-    ["different committer", (x) => { x.commits[0]!.committer = { login: "someone" }; }],
-    ["forged title", (x) => { x.pullRequest.title += " [skip ci]"; }],
-    ["missing marker", (x) => { x.pullRequest.body = "Release next beta"; }],
-    ["duplicate marker", (x) => { x.pullRequest.body += x.pullRequest.body!; }],
-    ["different parent", (x) => { x.commits[0]!.parents[0]!.sha = "c".repeat(40); }],
-    ["merge commit", (x) => { x.commits[0]!.parents.push({ sha: "c".repeat(40) }); }],
-    ["missing commit proof", (x) => { x.commits[0]!.commit.message = "Bump version"; }],
-    ["source changed", (x) => { x.pullRequest.base.sha = "c".repeat(40); }],
-    ["skipped beta", (x) => changePackage(x, "version", "0.1.0-beta.2")],
-    ["promoting beta to stable", (x) => changePackage(x, "version", "0.1.0")],
-    ["extra manifest formatting", (x) => { x.headPackageJson += "\n"; }],
-    ["script change", (x) => changePackage(x, "scripts", { test: "echo passed" })],
-    ["missing origin", (x) => { x.releaseOrigin = undefined; }],
-    ["unmerged origin", (x) => { x.releaseOrigin!.pullRequest.merged = false; }],
-    ["origin not in source history", (x) => { x.releaseOrigin!.sourceContainsMerge = false; }],
-    ["human origin commit", (x) => { x.releaseOrigin!.commits[0]!.author = { login: "COsborn2" }; }],
-    ["forked origin", (x) => { x.releaseOrigin!.pullRequest.head.repo = { full_name: "outside/ui" }; }],
-    ["origin source changes", (x) => { x.releaseOrigin!.files[0]!.filename = "src/button.tsx"; }],
-  ];
-  test.each(refused)("requires manual review for %s", (_label, alter) => {
-    const input = release(); alter(input); expect(evaluateDependencyPolicy(input).allowed).toBe(false);
-  });
-});
-
 
 describe("verification run binding", () => {
   const run = { id: 12, name: "UI Package", path: ".github/workflows/ui-package.yml", event: "pull_request", status: "completed", conclusion: "success",
