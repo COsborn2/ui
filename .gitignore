@@ -1,8 +1,8 @@
 node_modules/
 dist/
-.next/
 .artifacts/
-playwright-report/
+storybook-static/
+coverage/
 test-results/
 *.tsbuildinfo
 .env

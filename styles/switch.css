@@ -9,6 +9,6 @@
   .bnh-switch-input:disabled ~ span { opacity: .5; cursor: not-allowed; }
   .bnh-switch-copy { display: flex; flex-direction: column; gap: 2px; }
   .bnh-switch-label { font-size: 13px; font-weight: 500; line-height: 1.5; color: var(--bnh-text); }
-  .bnh-switch-description { font-size: 11.5px; line-height: 1.45; color: var(--bnh-text-mute); }
+  .bnh-switch-description { font-size: 11.5px; line-height: 1.45; color: var(--bnh-text-dim); }
   @media (prefers-reduced-motion: reduce) { .bnh-switch-track, .bnh-switch-track::after { transition: none; } }
 }

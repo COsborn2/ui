@@ -1,7 +1,7 @@
 import tseslint from "typescript-eslint";
 
 export default [
-  { ignores: ["**/node_modules/**", "**/dist/**", "**/.next/**", ".artifacts/**", "test-results/**", "playwright-report/**"] },
+  { ignores: ["**/node_modules/**", "**/dist/**", ".artifacts/**", "test-results/**", "storybook-static/**", "coverage/**"] },
   ...tseslint.configs.recommended,
   {
     files: ["**/*.{ts,tsx}"],
