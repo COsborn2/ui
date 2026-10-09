@@ -42,6 +42,8 @@ The trusted-main workflow checks signed Dependabot metadata, allowed file/versio
 
 The owner token uses the existing administrator review-only PR exception. The core protection ruleset has no bypass: strict required CI, resolved conversations, and squash-only merges remain enforced. A changed head/base or outstanding changes request stops the merge. Head matching is atomic; review state is rechecked immediately before submission. A dedicated GitHub App can replace the owner token later.
 
+The development-tool overrides keep `source-map-js` on its patched line and replace the vulnerable `basic-ftp` dependency still requested by `get-uri`. Remove an override when upstream resolves a patched version without it. The FTP major update disables separate transfer hosts by default; this release pipeline uses HTTPS and does not rely on that FTP behavior.
+
 Bun currently supports Dependabot version updates but not advisory-triggered security updates. The **Dependency Security** workflow audits the lockfile daily and on PRs/main; the same high/critical vulnerability check gates required `verify` and publishing. Failures need investigation and a dependency-fix PR; they are not silently dismissed. Older release lines are not scanned or maintained.
 
 ## Retry and investigate

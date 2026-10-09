@@ -25,6 +25,8 @@ Do not edit the version in `package.json` or create release tags yourself. CI se
 2. Merge it. CI publishes `0.2.0`; later changes publish `0.2.1`, `0.2.2`, etc.
 3. Stop updating `0.1.x`. Repeat for `0.3`, `0.4`, and so on.
 
+For a major release, set `line` to `1.0`, then `2.0`, and so on. To preview any new line first, use `channel: "beta"`; promote it using section 2. Only the selected line receives updates.
+
 Old versions remain installable but receive no fixes. Consumers update their own dependencies.
 
 ## 4. Check or retry a release
