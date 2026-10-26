@@ -114,7 +114,7 @@ export function SettingsSection({ title, subtitle, accent, headerAction, index =
   return (
     <section
       className={["bnh-settings-section", "bnh-settings-enter", accent && `bnh-settings-section--${accent}`, className].filter(Boolean).join(" ")}
-      style={{ ...(index > 0 ? { animationDelay: `${index * 80}ms` } : {}), ...style } as CSSProperties}
+      style={{ ...(index > 0 ? { "--bnh-settings-enter-delay": `${index * 80}ms` } : {}), ...style } as CSSProperties}
       {...props}
     >
       <div className={`bnh-settings-section-header${subtitle != null ? " bnh-settings-section-header--description" : ""}`}>

@@ -28,7 +28,7 @@ export function SegmentedControl<T extends string>({ items, value, onChange, "ar
         return (
           <button key={item.id} type="button" onClick={() => onChange(item.id)} disabled={item.disabled} title={item.title} aria-pressed={active} className="bnh-segmented-control-item" style={{ "--bnh-segment-accent": item.accent ?? "var(--bnh-text-dim)" } as CSSProperties}>
             {item.icon}
-            {item.accent && <span aria-hidden="true" className="bnh-segmented-control-dot" style={{ background: item.accent }} />}
+            {item.accent && <span aria-hidden="true" className="bnh-segmented-control-dot" />}
             {item.label}
             {item.count !== undefined && <span className="bnh-segmented-control-count">{item.count}</span>}
           </button>

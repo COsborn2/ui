@@ -18,16 +18,19 @@ for (const [name, value] of Object.entries(tokens.dark) as [string, string][]) {
   else defaults[name] = value;
 }
 const light = { ...dark, ...tokens.light };
+// Zero-specificity selectors: any application selector that sets a token
+// wins, so `:root { ... }` also overrides the light palette. Source order
+// still lets the light block replace the dark one.
 const theme = `/* Generated from tokens.json. No reset, font downloads, or runtime provider. */
 @layer theme, base, components, utilities;
 @layer theme {
-:root {
+:where(:root) {
 ${declarations(defaults)}
 }
-:root, .bnh-theme-dark, [data-bnh-theme="dark"] {
+:where(:root, .bnh-theme-dark, [data-bnh-theme="dark"]) {
 ${declarations(dark)}
 }
-:root.light, .bnh-theme-light, [data-bnh-theme="light"] {
+:where(:root.light, .bnh-theme-light, [data-bnh-theme="light"]) {
 ${declarations(light)}
 }
 }\n`;

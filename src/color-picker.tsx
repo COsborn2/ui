@@ -1,6 +1,6 @@
 "use client";
 
-import type { ComponentPropsWithRef } from "react";
+import type { ComponentPropsWithRef, CSSProperties } from "react";
 import { Ban } from "lucide-react";
 
 export interface ColorOption {
@@ -29,7 +29,7 @@ export function ColorPicker({ value, onChange, colors, disabled, allowNone = tru
       {colors.map((color) => (
         <button key={color.value} type="button" disabled={disabled || color.disabled}
           title={color.label} aria-label={color.label} aria-pressed={value === color.value}
-          style={{ backgroundColor: color.value, color: color.value }} onClick={() => onChange(color.value)} />
+          style={{ "--bnh-color-picker-swatch": color.value } as CSSProperties} onClick={() => onChange(color.value)} />
       ))}
     </div>
   );

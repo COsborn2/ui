@@ -1,3 +1,4 @@
+import { ChevronDown } from "lucide-react";
 import { useId, type ComponentPropsWithRef } from "react";
 
 export interface SelectProps extends Omit<ComponentPropsWithRef<"select">, "size"> {
@@ -24,14 +25,18 @@ export function Select({
   return (
     <div className={["bnh-select-field", wrapperClassName].filter(Boolean).join(" ")}>
       {label && <label htmlFor={selectId} className="bnh-select-label">{label}</label>}
-      <select
-        {...props}
-        id={selectId}
-        aria-invalid={invalid ?? (error ? true : undefined)}
-        aria-describedby={[describedBy, error ? errorId : undefined].filter(Boolean).join(" ") || undefined}
-        className={["bnh-select", `bnh-select--${size}`, error && "bnh-select--error", className]
-          .filter(Boolean).join(" ")}
-      />
+      <span className="bnh-select-control">
+        <select
+          {...props}
+          id={selectId}
+          aria-invalid={invalid ?? (error ? true : undefined)}
+          aria-describedby={[describedBy, error ? errorId : undefined].filter(Boolean).join(" ") || undefined}
+          className={["bnh-select", `bnh-select--${size}`, error && "bnh-select--error", className]
+            .filter(Boolean).join(" ")}
+        />
+        {/* A real glyph rather than a background image, so it follows `color`. */}
+        <ChevronDown aria-hidden="true" className="bnh-select-icon" />
+      </span>
       {error && <p id={errorId} className="bnh-select-error">{error}</p>}
     </div>
   );
