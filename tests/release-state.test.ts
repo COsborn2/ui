@@ -1,6 +1,6 @@
 // @vitest-environment node
-import { describe, expect, test } from "vitest";
-import { latestPublished, verifyReleaseRecord, type PublishedVersion } from "../scripts/release.js";
+import { afterEach, describe, expect, test, vi } from "vitest";
+import { latestPublished, verifyReleaseRecord, waitForPublication, type PublishedVersion } from "../scripts/release.js";
 
 const name = "@cosborn2/ui";
 const source = "a".repeat(40);
@@ -81,5 +81,87 @@ describe("Git and npm release reconciliation", () => {
     const withoutSource = { name, version };
     expect(() => verifyReleaseRecord(withoutSource, null, [])).toThrow("no source commit");
     expect(() => verifyReleaseRecord(withoutSource, source, [`v${version}`])).toThrow("no source commit");
+  });
+});
+
+describe("publication visibility", () => {
+  const version = "0.1.0-beta.1";
+  const visible = () => Response.json(published(version));
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+  });
+
+  test("waits for a newly published version to become visible without consulting a stale latest packument", async () => {
+    vi.useFakeTimers();
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    const fetch = vi.fn()
+      .mockResolvedValueOnce(new Response(null, { status: 404 }))
+      .mockResolvedValueOnce(new Response(null, { status: 404 }))
+      .mockResolvedValueOnce(visible());
+    vi.stubGlobal("fetch", fetch);
+    const result = expect(waitForPublication(version, source)).resolves.toBeUndefined();
+    await vi.runAllTimersAsync();
+    await result;
+    expect(fetch).toHaveBeenCalledTimes(3);
+    for (const [url] of fetch.mock.calls) {
+      expect(url).toBe("https://registry.npmjs.org/%40cosborn2%2Fui/0.1.0-beta.1");
+    }
+  });
+
+  test("recovers from transient registry and network failures", async () => {
+    vi.useFakeTimers();
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    const fetch = vi.fn()
+      .mockRejectedValueOnce(new TypeError("fetch failed"))
+      .mockRejectedValueOnce(new DOMException("request timed out", "TimeoutError"))
+      .mockResolvedValueOnce(new Response(null, { status: 429 }))
+      .mockResolvedValueOnce(new Response(null, { status: 503 }))
+      .mockResolvedValueOnce(visible());
+    vi.stubGlobal("fetch", fetch);
+    const result = expect(waitForPublication(version, source)).resolves.toBeUndefined();
+    await vi.runAllTimersAsync();
+    await result;
+    expect(fetch).toHaveBeenCalledTimes(5);
+  });
+
+  test("stops after three minutes and reports that publishing may already have succeeded", async () => {
+    vi.useFakeTimers();
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    const fetch = vi.fn().mockResolvedValue(new Response(null, { status: 404 }));
+    vi.stubGlobal("fetch", fetch);
+    const result = expect(waitForPublication(version, source)).rejects.toThrow("Publication may have succeeded; retry the main workflow");
+    const start = Date.now();
+    await vi.runAllTimersAsync();
+    await result;
+    expect(Date.now() - start).toBe(180_000);
+  });
+
+  test.each([
+    { ...published(version), name: "@someone/else" },
+    published("0.1.0-beta.0"),
+    published(version, differentSource),
+    { name, version },
+    null,
+  ])("fails immediately if a visible record violates source integrity: %j", async record => {
+    const fetch = vi.fn().mockResolvedValue(Response.json(record));
+    vi.stubGlobal("fetch", fetch);
+    await expect(waitForPublication(version, source)).rejects.toThrow("did not match the intended package, version, and source commit");
+    expect(fetch).toHaveBeenCalledOnce();
+  });
+
+  test.each([401, 403])("fails immediately on HTTP %s rather than retrying an authorization error", async status => {
+    const fetch = vi.fn().mockResolvedValue(new Response(null, { status }));
+    vi.stubGlobal("fetch", fetch);
+    await expect(waitForPublication(version, source)).rejects.toThrow(`HTTP ${status}`);
+    expect(fetch).toHaveBeenCalledOnce();
+  });
+
+  test("rejects malformed JSON rather than hiding registry corruption behind retries", async () => {
+    const fetch = vi.fn().mockResolvedValue(new Response("invalid JSON", { status: 200 }));
+    vi.stubGlobal("fetch", fetch);
+    await expect(waitForPublication(version, source)).rejects.toThrow(SyntaxError);
+    expect(fetch).toHaveBeenCalledOnce();
   });
 });

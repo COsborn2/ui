@@ -8,7 +8,7 @@ Only `main` publishes. `release.json` selects the maintained line and beta/stabl
 
 The workflow checks lint/types, library build, React unit tests, Storybook interactions/accessibility, Storybook build, and npm package contents before publication. Source, styles, runtime build inputs, and dependency changes publish the next beta or patch. A line/channel change explicitly starts a minor/major or stable release. Other maintenance alone does not publish.
 
-Releases are serialized. Stale main runs skip publication; the newer run includes outstanding package changes. Registry errors stop publication. A retry verifies npm's source commit against Git before repairing missing tags/releases, then publishes only if more package changes exist. Conflicting tags or missing source history fail instead of being overwritten.
+Releases are serialized. Stale main runs skip publication; the newer run includes outstanding package changes. Registry errors stop release planning. After publication, verification waits up to three minutes for the exact version to become visible; source mismatches still fail immediately. A retry verifies npm's source commit against Git before repairing missing tags/releases, then publishes only if more package changes exist. Conflicting tags or missing source history fail instead of being overwritten.
 
 The original `0.1.0-beta.0` was published from a tarball without source metadata or a Git tag. It is the sole legacy bootstrap exception; the first automated release advances to `0.1.0-beta.1` and records its actual commit.
 

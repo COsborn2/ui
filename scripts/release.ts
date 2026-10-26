@@ -65,6 +65,47 @@ async function registry(): Promise<PublishedVersion> {
   return latestPublished(await response.json());
 }
 
+// npm may accept a publication before its public read endpoints expose it.
+// Verify that exact immutable version, retaining source checks once it appears.
+export async function waitForPublication(version: string, source: string): Promise<void> {
+  const deadline = Date.now() + 180_000;
+  const url = `https://registry.npmjs.org/${encodeURIComponent(packageName)}/${encodeURIComponent(version)}`;
+  let observation = "version is not visible yet";
+  while (Date.now() < deadline) {
+    let response: Response | undefined;
+    let metadata: unknown;
+    try {
+      response = await fetch(url, {
+        headers: { accept: "application/json", "cache-control": "no-cache" },
+        signal: AbortSignal.timeout(Math.max(1, Math.min(30_000, deadline - Date.now()))),
+      });
+      if (response.ok) metadata = await response.json();
+    } catch (error) {
+      if (!(error instanceof TypeError) && !(error instanceof Error && ["AbortError", "TimeoutError"].includes(error.name))) throw error;
+      response = undefined;
+      observation = "registry request failed or timed out";
+    }
+    if (response?.ok) {
+      if (!metadata || typeof metadata !== "object" || !("name" in metadata) || metadata.name !== packageName
+        || !("version" in metadata) || metadata.version !== version || !("gitHead" in metadata) || metadata.gitHead !== source) {
+        throw new Error("npm publication did not match the intended package, version, and source commit.");
+      }
+      return;
+    }
+    if (response) {
+      if (![404, 408, 429].includes(response.status) && response.status < 500) {
+        throw new Error(`npm publication verification failed: HTTP ${response.status}`);
+      }
+      observation = `registry returned HTTP ${response.status}`;
+    }
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) break;
+    console.log(`Waiting for npm to expose ${packageName}@${version}: ${observation}.`);
+    await new Promise(resolve => setTimeout(resolve, Math.min(10_000, remaining)));
+  }
+  throw new Error(`npm publication could not be verified within 3 minutes (${observation}). Publication may have succeeded; retry the main workflow to reconcile it before making another release.`);
+}
+
 async function github(path: string, method = "GET", body?: unknown): Promise<Response> {
   const response = await fetch(`https://api.github.com/repos/${repository}/${path}`, {
     method,
@@ -164,8 +205,7 @@ async function main(): Promise<void> {
   });
   if (result.error) throw result.error;
   if (result.status !== 0) throw new Error("Release failed. Re-run the main publishing workflow to reconcile partial publication.");
-  const recorded = await registry();
-  if (recorded.version !== target || recorded.gitHead !== head) throw new Error("npm publication did not match the intended version and source commit.");
+  await waitForPublication(target, head);
   const remoteTags = git("ls-remote", "origin", `refs/tags/v${target}`, `refs/tags/v${target}^{}`);
   if (!remoteTags.split("\n").some(line => line.startsWith(`${head}\t`))) throw new Error("Published version is missing its exact remote source tag.");
   await summary(`Published ${packageName}@${target}. Older release lines are no longer maintained.`);
