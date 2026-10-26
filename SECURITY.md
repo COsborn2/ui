@@ -8,7 +8,7 @@ Include the affected package version, a minimal reproduction, expected impact, a
 
 ## Supported versions
 
-This project maintains one release line on `main`. Before the first stable release, security fixes target the newest beta. After a stable release is available, fixes target the newest stable version. Consumers must upgrade to that version to receive fixes; older betas and stable release lines do not receive backports. For example, once `0.2.x` is the current stable line, `0.1.x` is no longer supported.
+Security fixes target the line and channel selected in `release.json`, whether beta or stable. Only that line is maintained on `main`; older betas and stable lines receive no backports. Consumers must upgrade to the maintained line to receive fixes. For example, after selecting `0.2` (beta or stable), `0.1.x` is no longer supported.
 
 Report a vulnerability even if you are unsure whether your version is affected.
 
