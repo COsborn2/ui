@@ -16,6 +16,11 @@ updates:
       - dependency-name: "lucide-react"
         versions: ["*"]
     open-pull-requests-limit: 10
+    # Wait out the window in which broken or compromised releases are usually
+    # caught. Longer than bunfig.toml's 3-day minimumReleaseAge, so regenerated
+    # lockfiles always clear Bun's gate.
+    cooldown:
+      default-days: 4
   - package-ecosystem: "github-actions"
     directory: "/"
     commit-message:
@@ -26,3 +31,6 @@ updates:
       minor-and-patch:
         update-types: ["minor", "patch"]
     open-pull-requests-limit: 5
+    # Same delay as package updates.
+    cooldown:
+      default-days: 4
