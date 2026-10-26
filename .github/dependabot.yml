@@ -17,13 +17,14 @@ updates:
       radix:
         patterns: ["@radix-ui/*"]
         update-types: ["minor", "patch"]
+      # Dev-tooling families whose packages only work at matching majors take
+      # every update type, so a major lands as one PR instead of several that
+      # each fail alone.
       storybook:
         patterns: ["storybook", "@storybook/*"]
-        update-types: ["minor", "patch"]
       vite-and-vitest:
         # The browser test runner drives Playwright, so its version moves with Vitest.
         patterns: ["vite", "@vitejs/*", "vitest", "@vitest/*", "playwright"]
-        update-types: ["minor", "patch"]
       lint-and-types:
         # Tooling that only affects lint and typecheck, kept apart so it never
         # holds back library fixes.
