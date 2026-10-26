@@ -1,33 +1,30 @@
 # Versioning
 
-We maintain one release line on `main`. No beta or LTS branches are needed.
+We maintain the stable `0.2.x` line on `main`. Older lines receive no updates.
 
 ## 1. Release everyday changes
 
-Merge a PR into `main`. After checks pass, CI publishes automatically:
+1. Merge a PR into `main`.
+2. After checks pass, CI publishes the next patch: `0.2.0` → `0.2.1` → `0.2.2`.
 
-- Beta: `0.1.0-beta.1` → `0.1.0-beta.2`.
-- Stable: `0.1.0` → `0.1.1` → `0.1.2`.
-
-Dependabot updates follow the same process. Eligible updates merge automatically after checks pass. Changes only to docs, stories, tests, or GitHub Actions do not publish.
+Eligible Dependabot updates merge and publish the same way. Changes only to docs, stories, tests, or GitHub Actions do not publish.
 
 Do not edit the version in `package.json` or create release tags yourself. CI sets the published version; npm records and Git tags track the counter.
 
-## 2. Promote beta to stable
+## 2. Start the next minor or major version
 
-1. In a PR, change `release.json` from `"channel": "beta"` to `"channel": "stable"`.
-2. Merge it. CI publishes `0.1.0` to npm's `latest` channel.
-3. Later package changes automatically publish `0.1.1`, `0.1.2`, etc.
+1. In the feature PR, change `release.json` from `"line": "0.2"` to `"line": "0.3"`. Keep `"channel": "stable"`.
+2. Merge it. CI publishes `0.3.0` to npm’s `latest` tag; later changes publish `0.3.1`, `0.3.2`, etc.
+3. Stop updating `0.2.x`. Consumers adopt the new version through their own dependency PRs.
 
-## 3. Start the next minor version
+For a major release, set `line` to `1.0`, then `2.0`, and so on.
 
-1. In the PR containing the new features or breaking changes, change `"line": "0.1"` to `"line": "0.2"` in `release.json`. Keep `"channel": "stable"`.
-2. Merge it. CI publishes `0.2.0`; later changes publish `0.2.1`, `0.2.2`, etc.
-3. Stop updating `0.1.x`. Repeat for `0.3`, `0.4`, and so on.
+## 3. Preview a future line, if needed
 
-For a major release, set `line` to `1.0`, then `2.0`, and so on. To preview any new line first, use `channel: "beta"`; promote it using section 2. Only the selected line receives updates.
+1. Set the next `line` and `"channel": "beta"` in a PR. Its merge publishes that line’s first beta.
+2. To promote it, change only `channel` to `stable`. CI publishes the stable version to `latest`.
 
-Old versions remain installable but receive no fixes. Consumers update their own dependencies.
+Only one line is maintained at a time; no beta or LTS branches are needed.
 
 ## 4. Check or retry a release
 
