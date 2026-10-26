@@ -1,0 +1,21 @@
+{
+  "git": {
+    "requireBranch": "main",
+    "requireCommits": false,
+    "commit": false,
+    "tagName": "v${version}",
+    "push": false
+  },
+  "npm": {
+    "ignoreVersion": true,
+    "skipChecks": true,
+    "versionArgs": ["--allow-same-version"]
+  },
+  "github": {
+    "release": true,
+    "autoGenerate": true
+  },
+  "hooks": {
+    "before:github:release": "git push origin refs/tags/v${version}"
+  }
+}

@@ -1,82 +1,99 @@
-import { describe, expect, test } from "bun:test";
-import { Children, isValidElement, type ReactElement, type ReactNode } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
+import { describe, expect, test, vi } from "vitest";
+import { createRef } from "react";
+import { act, render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { Toast, ToastViewport } from "../src/toast.js";
 
-function elements(node: ReactNode): ReactElement<Record<string, unknown>>[] {
-  const result: ReactElement<Record<string, unknown>>[] = [];
-  Children.forEach(node, (child) => {
-    if (isValidElement<Record<string, unknown>>(child)) result.push(child, ...elements(child.props.children as ReactNode));
-  });
-  return result;
-}
-
-describe("controlled toast presentation", () => {
-  test("renders static message HTML without browser globals or handlers", () => {
-    const tree = Toast({ message: "Saved", variant: "success" });
-    const html = renderToStaticMarkup(tree);
-    expect(html).toContain('role="status" aria-live="polite" aria-atomic="true">Saved</div>');
-    expect(html).not.toContain("<button");
-    expect(html).not.toContain("bnh-toast__ring-progress");
-    for (const element of elements(tree)) {
-      expect(Object.keys(element.props).filter((name) => /^on[A-Z]/.test(name))).toEqual([]);
-    }
-  });
-
-  test("announces errors assertively and keeps controls outside the live message", () => {
-    const html = renderToStaticMarkup(<Toast message="Save failed" variant="error" onDismiss={() => {}}
-      action={{ label: "Retry", ariaLabel: "Retry saving", onClick: () => {} }} />);
-    expect(html).toContain('role="alert" aria-live="assertive" aria-atomic="true">Save failed</div>');
-    expect(html).toContain('aria-label="Retry saving"');
-    expect(html).toContain('aria-label="Dismiss notification"');
-    expect(html.match(/type="button"/g)).toHaveLength(2);
-    expect(html.match(/aria-live=/g)).toHaveLength(1);
+describe("Toast", () => {
+  test("announces only its message and keeps keyboard actions outside that live region", async () => {
+    const user = userEvent.setup();
+    const action = vi.fn();
+    const dismiss = vi.fn();
+    const submit = vi.fn((event: React.FormEvent) => event.preventDefault());
+    render(<form onSubmit={submit}><Toast message="Save failed" variant="error" onDismiss={dismiss}
+      action={{ label: "Retry", ariaLabel: "Retry saving", onClick: action }} /></form>);
+    const alert = screen.getByRole("alert");
+    expect(alert).toHaveTextContent("Save failed");
+    expect(alert).toHaveAttribute("aria-live", "assertive");
+    expect(alert).toHaveAttribute("aria-atomic", "true");
+    expect(within(alert).queryByRole("button")).not.toBeInTheDocument();
+    const retry = screen.getByRole("button", { name: "Retry saving" });
+    retry.focus();
+    await user.keyboard("{Enter}");
+    expect(action).toHaveBeenCalledOnce();
+    expect(dismiss).not.toHaveBeenCalled();
+    expect(alert).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Dismiss notification" }));
+    expect(dismiss).toHaveBeenCalledOnce();
+    expect(submit).not.toHaveBeenCalled();
   });
 
-  test("accepts a caller-owned announcer without creating another live role", () => {
-    const html = renderToStaticMarkup(<Toast message="Already announced" announce="off" dismissLabel="Dismiss saved notice" onDismiss={() => {}} />);
-    expect(html).toContain('aria-live="off"');
-    expect(html).not.toContain('role="status"');
-    expect(html).not.toContain('role="alert"');
-    expect(html).toContain('aria-label="Dismiss saved notice"');
+  test("uses polite announcements by default and supports explicit announcement overrides", () => {
+    const { rerender } = render(<Toast message="Saved" variant="success" />);
+    expect(screen.getByRole("status")).toHaveAttribute("aria-live", "polite");
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+    rerender(<Toast message="Important update" announce="assertive" />);
+    expect(screen.getByRole("alert")).toHaveTextContent("Important update");
+    rerender(<Toast message="Already announced" announce="off" />);
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(screen.getByText("Already announced")).toHaveAttribute("aria-live", "off");
   });
 
-  test("clamps decorative progress and does not expose it as an announcement", () => {
-    const full = renderToStaticMarkup(<Toast message="Saved" progress={2} />);
-    const empty = renderToStaticMarkup(<Toast message="Saved" progress={-1} />);
-    expect(full).toContain('stroke-dashoffset="0"');
-    expect(empty).toContain('stroke-dashoffset="1"');
-    expect(full).toContain('class="bnh-toast__indicator" aria-hidden="true"');
-    expect(full).not.toContain('role="progressbar"');
+  test("does not invoke a disabled action and supports a custom dismiss name", async () => {
+    const user = userEvent.setup();
+    const action = vi.fn();
+    const dismiss = vi.fn();
+    render(<Toast message="Archived" action={{ label: "Undo", disabled: true, onClick: action }}
+      onDismiss={dismiss} dismissLabel="Dismiss archived notice" />);
+    await user.click(screen.getByRole("button", { name: "Undo" }));
+    expect(action).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Undo" })).toBeDisabled();
+    await user.click(screen.getByRole("button", { name: "Dismiss archived notice" }));
+    expect(dismiss).toHaveBeenCalledOnce();
   });
 
-  test("leaves action-dismiss policy to the host and forwards event/ref composition", () => {
-    let actions = 0;
-    let dismissals = 0;
-    const onMouseEnter = () => {};
-    const onFocusCapture = () => {};
-    const ref = { current: null };
-    const tree = Toast({ message: "Archived", className: "app-toast", ref, onMouseEnter, onFocusCapture,
-      action: { label: "Undo", onClick: () => { actions++; } }, onDismiss: () => { dismissals++; } });
-    expect(tree.props.ref).toBe(ref);
-    expect(tree.props.onMouseEnter).toBe(onMouseEnter);
-    expect(tree.props.onFocusCapture).toBe(onFocusCapture);
-    const buttons = elements(tree).filter((element) => element.type === "button");
-    (buttons[0].props.onClick as () => void)();
-    expect(actions).toBe(1);
-    expect(dismissals).toBe(0);
-    (buttons[1].props.onClick as () => void)();
-    expect(dismissals).toBe(1);
+  test("forwards native refs and focus/hover events for host composition", async () => {
+    const user = userEvent.setup();
+    const ref = createRef<HTMLDivElement>();
+    const hover = vi.fn();
+    const focus = vi.fn();
+    render(<Toast ref={ref} message="Archived" className="app-toast" onMouseEnter={hover} onFocusCapture={focus}
+      onDismiss={vi.fn()} />);
+    expect(ref.current).toHaveClass("app-toast");
+    await user.hover(screen.getByText("Archived"));
+    expect(hover).toHaveBeenCalledOnce();
+    act(() => screen.getByRole("button", { name: "Dismiss notification" }).focus());
+    expect(focus).toHaveBeenCalledOnce();
   });
 
-  test("persistent announcers exist when empty and contain only supplied message content", () => {
-    const empty = renderToStaticMarkup(<ToastViewport announcements={{}} />);
-    expect(empty).toContain('aria-live="polite" aria-atomic="false" aria-relevant="additions text"></div>');
-    expect(empty).toContain('aria-live="assertive" aria-atomic="false" aria-relevant="additions text"></div>');
-    const html = renderToStaticMarkup(<ToastViewport aria-label="Upload notifications" style={{ bottom: 80 }}
-      announcements={{ polite: <span>Upload complete</span> }}><Toast message="Upload complete" announce="off" onDismiss={() => {}} /></ToastViewport>);
-    expect(html).toContain('aria-label="Upload notifications"');
-    expect(html).toContain('style="bottom:80px"');
-    expect(html).toContain('aria-relevant="additions text"><span>Upload complete</span></div>');
+  test("keeps progress updates outside its live message", () => {
+    const { rerender } = render(<Toast message="Saved" progress={1} />);
+    const message = screen.getByRole("status");
+    const content = message.firstChild;
+    rerender(<Toast message="Saved" progress={0.25} />);
+    expect(screen.getByRole("status")).toBe(message);
+    expect(message.firstChild).toBe(content);
+    expect(message).toHaveTextContent("Saved");
+    expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
   });
+
+  test("preserves empty announcement regions as messages arrive without duplicating controls", () => {
+    const { rerender } = render(<ToastViewport announcements={{}} />);
+    const polite = screen.getByRole("status");
+    const assertive = screen.getByRole("alert");
+    expect(polite).toBeEmptyDOMElement();
+    expect(assertive).toBeEmptyDOMElement();
+    rerender(<ToastViewport aria-label="Upload notifications" announcements={{ polite: <span key="upload">Upload complete</span> }}>
+      <Toast message="Upload complete" announce="off" onDismiss={vi.fn()} />
+    </ToastViewport>);
+    expect(screen.getByRole("status")).toBe(polite);
+    expect(screen.getByRole("alert")).toBe(assertive);
+    expect(polite).toHaveTextContent("Upload complete");
+    expect(polite).toHaveAttribute("aria-relevant", "additions text");
+    expect(polite).toHaveAttribute("aria-atomic", "false");
+    expect(within(polite).queryByRole("button")).not.toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Upload notifications" })).toContainElement(screen.getByRole("button", { name: "Dismiss notification" }));
+  });
+
 });

@@ -1,65 +1,64 @@
-import { describe, expect, test } from "bun:test";
-import { createRef } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
+import { describe, expect, test, vi } from "vitest";
+import { createRef, useState } from "react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { Notice } from "../src/notice.js";
 
-describe("Notice server rendering", () => {
-  test("renders static warnings without forcing an announcement or interaction", () => {
-    const html = renderToStaticMarkup(<Notice tone="danger" heading="Account restricted">Contact your administrator.</Notice>);
-    expect(html).toContain("Account restricted");
-    expect(html).toContain("Contact your administrator.");
-    expect(html).not.toContain("role=");
-    expect(html).not.toContain("aria-live=");
-    expect(html).not.toContain("<button");
-    expect(html).not.toContain("<svg");
+describe("Notice", () => {
+  test("renders static feedback without forcing a live region or action", () => {
+    render(<Notice tone="danger" heading="Account restricted">Contact your administrator.</Notice>);
+    expect(screen.getByText("Account restricted")).toBeVisible();
+    expect(screen.getByText("Contact your administrator.")).toBeVisible();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 
-  test("lets callers explicitly announce changing status or errors", () => {
-    const status = renderToStaticMarkup(<Notice tone="success" role="status" aria-atomic="true">Preferences saved.</Notice>);
-    expect(status).toContain('role="status"');
-    expect(status).toContain('aria-atomic="true"');
-    expect(status).toContain("Preferences saved.");
-    const error = renderToStaticMarkup(<Notice tone="danger" role="alert">Could not save.</Notice>);
-    expect(error).toContain('role="alert"');
-    expect(error).not.toContain("aria-live=");
+  test("lets callers announce a changing status and switch to an alert", () => {
+    const { rerender } = render(<Notice tone="success" role="status" aria-atomic="true">Preferences saved.</Notice>);
+    expect(screen.getByRole("status")).toHaveTextContent("Preferences saved.");
+    expect(screen.getByRole("status")).toHaveAttribute("aria-atomic", "true");
+    rerender(<Notice tone="danger" role="alert">Could not save.</Notice>);
+    expect(screen.getByRole("alert")).toHaveTextContent("Could not save.");
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
-  test("accepts rich content and separate actions without hiding the action from assistive technology", () => {
-    const html = renderToStaticMarkup(
-      <Notice
-        heading={<strong>Verify your email</strong>}
-        icon={<svg><path d="M1 1h2" /></svg>}
-        actions={<a href="/verify">Review details</a>}
-      >
-        <p>We sent a link to <strong>alex@example.com</strong>.</p>
-        <p>It expires in ten minutes.</p>
-      </Notice>,
-    );
-    expect(html).toContain('<span class="bnh-notice-icon" aria-hidden="true"><svg>');
-    expect(html).toContain('<div class="bnh-notice-message"><p>');
-    expect(html).toContain('<div class="bnh-notice-actions"><a href="/verify">Review details</a></div>');
-    expect(html.match(/aria-hidden=/g)).toHaveLength(1);
+  test("keeps actions accessible while treating supplied icons as decorative", async () => {
+    const retry = vi.fn();
+    const user = userEvent.setup();
+    render(<Notice heading={<h2>Verify your email</h2>} icon={<svg role="img" aria-label="Decorative mail" />}
+      actions={<><a href="/verify">Review details</a><button onClick={retry}>Send again</button></>}>
+      <p>We sent a link to <strong>alex@example.com</strong>.</p>
+    </Notice>);
+    expect(screen.getByRole("heading", { name: "Verify your email" })).toBeVisible();
+    expect(screen.getByRole("link", { name: "Review details" })).toHaveAttribute("href", "/verify");
+    expect(screen.queryByRole("img", { name: "Decorative mail" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Send again" }));
+    expect(retry).toHaveBeenCalledOnce();
   });
 
-  test("preserves native attributes, refs and caller overrides", () => {
+  test("allows the consumer to dismiss a notice through its action slot", async () => {
+    function DismissibleNotice() {
+      const [visible, setVisible] = useState(true);
+      return visible ? <Notice role="status" actions={<button onClick={() => setVisible(false)}>Dismiss notice</button>}>Settings updated.</Notice> : <p>Notice dismissed.</p>;
+    }
+    const user = userEvent.setup();
+    render(<DismissibleNotice />);
+    await user.click(screen.getByRole("button", { name: "Dismiss notice" }));
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(screen.getByText("Notice dismissed.")).toBeVisible();
+  });
+
+  test("forwards native attributes, refs and caller styles to the rendered element", () => {
     const ref = createRef<HTMLDivElement>();
-    const tree = Notice({
-      ref,
-      id: "notice",
-      title: "More information",
-      role: "note",
-      "aria-label": "Account information",
-      className: "custom-notice",
-      style: { padding: 24 },
-      children: "Read <carefully>.",
-    });
-    expect(tree.props.ref).toBe(ref);
-    const html = renderToStaticMarkup(tree);
-    expect(html).toContain('id="notice"');
-    expect(html).toContain('title="More information"');
-    expect(html).toContain('aria-label="Account information"');
-    expect(html).toContain('class="bnh-notice bnh-notice--neutral custom-notice"');
-    expect(html).toContain('style="padding:24px"');
-    expect(html).toContain("Read &lt;carefully&gt;.");
+    render(<Notice ref={ref} id="account-notice" title="More information" role="note" aria-label="Account information"
+      className="custom-notice" style={{ padding: 24 }}>Read &lt;carefully&gt;.</Notice>);
+    const notice = screen.getByRole("note", { name: "Account information" });
+    expect(ref.current).toBe(notice);
+    expect(notice).toHaveAttribute("id", "account-notice");
+    expect(notice).toHaveAttribute("title", "More information");
+    expect(notice).toHaveClass("custom-notice");
+    expect(notice).toHaveStyle({ padding: "24px" });
+    expect(notice).toHaveTextContent("Read <carefully>.");
   });
 });

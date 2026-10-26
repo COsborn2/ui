@@ -8,4 +8,12 @@ Include the affected package version, a minimal reproduction, expected impact, a
 
 ## Supported versions
 
-Security fixes target the latest published version. During the initial beta, consumers should update to the latest beta; older prereleases do not receive separate backports. Report a vulnerability even if you are unsure whether your version is affected.
+Security fixes target the line and channel selected in `release.json`, whether beta or stable. Only that line is maintained on `main`; older betas and stable lines receive no backports. Consumers must upgrade to the maintained line to receive fixes. For example, after selecting `0.2` (beta or stable), `0.1.x` is no longer supported.
+
+Report a vulnerability even if you are unsure whether your version is affected.
+
+## Dependency maintenance
+
+Dependabot proposes routine version updates for the maintained release line. Its Bun integration currently supports version updates, not advisory-triggered security updates. Maintainers can run `bun audit` locally when investigating dependency vulnerabilities; audits are not required CI or publishing checks.
+
+Registry advisories complement private reports and security review. Report suspected vulnerabilities through the private form above.

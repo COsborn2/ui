@@ -8,7 +8,10 @@
       "react",
       "react-dom",
       "node",
-      "bun"
+      "bun",
+      "vite/client",
+      "vitest/globals",
+      "@testing-library/jest-dom"
     ],
     "module": "ESNext",
     "moduleResolution": "Bundler"
@@ -19,6 +22,9 @@
     "scripts/**/*.ts",
     "tests/**/*.ts",
     "tests/**/*.tsx",
-    "fixtures/playwright.config.ts"
+    "stories/**/*.tsx",
+    ".storybook/**/*.ts",
+    ".storybook/**/*.tsx",
+    "vitest.config.ts"
   ]
 }
