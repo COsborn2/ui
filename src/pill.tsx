@@ -1,4 +1,5 @@
 import type { CSSProperties, HTMLAttributes } from "react";
+import { pillStyle } from "./_pill-style.js";
 
 export const PILL_HEIGHT = 26;
 
@@ -6,6 +7,7 @@ export interface PillProps extends HTMLAttributes<HTMLElement> {
   tint?: string;
   background?: string;
   borderColor?: string;
+  /** Pixels; defaults to PILL_HEIGHT through `--bnh-pill-height`. */
   height?: number;
   as?: "span" | "div";
   style?: CSSProperties;
@@ -16,7 +18,7 @@ export function Pill({
   tint,
   background,
   borderColor,
-  height = PILL_HEIGHT,
+  height,
   as: Tag = "span",
   style,
   className,
@@ -25,13 +27,7 @@ export function Pill({
   return (
     <Tag
       className={["bnh-pill", className].filter(Boolean).join(" ")}
-      style={{
-        height,
-        whiteSpace: "nowrap",
-        background: background ?? (tint ? `color-mix(in oklch, ${tint} 8%, transparent)` : undefined),
-        border: `1px solid ${borderColor ?? (tint ? `color-mix(in oklch, ${tint} 30%, transparent)` : "var(--bnh-border)")}`,
-        ...style,
-      }}
+      style={pillStyle({ tint, background, borderColor, height }, style)}
       {...props}
     />
   );

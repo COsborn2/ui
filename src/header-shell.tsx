@@ -7,11 +7,17 @@ interface HeaderShellLayoutProps {
   left: ReactNode;
   right?: ReactNode;
   width?: "content" | "full";
-  minWidth?: CSSProperties["minWidth"];
+  /** Content width only. */
+  minWidth?: number | string;
+  /** Defaults to `calc(100vw - 28px)`. */
   maxWidth?: number | string;
+  /** Full width only; pixels on each side. Defaults to 24. */
   sideMargin?: number;
+  /** Defaults to `var(--bnh-header-top, 18px)`. */
   top?: number | string;
+  /** Defaults to 30. */
   zIndex?: number;
+  /** Pixels between the left and right slots. Defaults to 10. */
   gap?: number;
 }
 
@@ -27,29 +33,31 @@ export function HeaderShell({
   className,
   width = "content",
   minWidth,
-  maxWidth = "calc(100vw - 28px)",
-  sideMargin = 24,
-  top = "var(--bnh-header-top, 18px)",
-  zIndex = 30,
-  gap = 10,
+  maxWidth,
+  sideMargin,
+  top,
+  zIndex,
+  gap,
   style,
   ...props
 }: HeaderShellProps): ReactElement {
-  const maxW = typeof maxWidth === "number" ? `${maxWidth}px` : maxWidth;
+  // Layout props become custom properties; header-shell.css owns the
+  // declarations so application stylesheets can restyle the shell.
   return createElement(Element, {
     ...props,
-    className: ["bnh-header-shell", className].filter(Boolean).join(" "),
+    className: ["bnh-header-shell", width === "full" && "bnh-header-shell--full", className].filter(Boolean).join(" "),
     style: {
-      position: "fixed",
-      top,
-      marginTop: "var(--bnh-header-offset, 0px)",
-      zIndex,
-      gap,
-      padding: `${HEADER_PAD_Y}px ${HEADER_PAD_X}px`,
-      ...(width === "full"
-        ? { width: `min(calc(100vw - ${sideMargin * 2}px), ${maxW})` }
-        : { width: "max-content", minWidth, maxWidth }),
+      "--bnh-header-shell-top": length(top),
+      "--bnh-header-shell-z": zIndex,
+      "--bnh-header-shell-gap": length(gap),
+      "--bnh-header-shell-min-width": length(minWidth),
+      "--bnh-header-shell-max-width": length(maxWidth),
+      "--bnh-header-shell-side-margin": length(sideMargin),
       ...style,
-    },
+    } as CSSProperties,
   }, left, right);
+}
+
+function length(value: number | string | undefined) {
+  return typeof value === "number" ? `${value}px` : value;
 }

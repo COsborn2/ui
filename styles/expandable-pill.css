@@ -1,10 +1,13 @@
 @import "./pill.css";
 
 @layer components {
-  .bnh-expandable-pill { display: inline-flex; flex-shrink: 0; }
+  .bnh-expandable-pill { position: relative; display: inline-flex; flex-shrink: 0; }
+  .bnh-expandable-pill[data-align="center"] { position: static; }
   .bnh-expandable-pill-trigger { cursor: pointer; }
-  .bnh-expandable-pill-trigger:focus-visible { outline: 2px solid var(--bnh-accent); outline-offset: 2px; }
+  .bnh-expandable-pill-trigger:focus-visible { outline: var(--bnh-focus-ring-width) solid var(--bnh-focus-ring-color); outline-offset: var(--bnh-focus-ring-offset); }
   .bnh-expandable-pill-trigger:disabled { cursor: not-allowed; opacity: .4; }
-  .bnh-expandable-pill-panel { position: absolute; z-index: 1; transition: opacity .16s, transform .2s, visibility .2s; }
+  .bnh-expandable-pill-panel { position: absolute; z-index: 1; top: calc(100% + var(--bnh-expandable-pill-gap, 6px)); right: 0; max-width: var(--bnh-expandable-pill-panel-max-width, calc(100vw - 32px)); opacity: 0; visibility: hidden; pointer-events: none; transform: translateY(-4px) scale(.98); transform-origin: top right; transition: opacity .16s, transform .2s, visibility .2s; }
+  .bnh-expandable-pill-panel[data-align="center"] { left: 16px; right: 16px; display: flex; justify-content: center; max-width: none; transform-origin: top center; }
+  .bnh-expandable-pill-panel[data-state="open"] { opacity: 1; visibility: visible; pointer-events: auto; transform: translateY(0) scale(1); }
   @media (prefers-reduced-motion: reduce) { .bnh-expandable-pill-panel { transition: none; } }
 }

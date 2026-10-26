@@ -123,9 +123,43 @@ Dark is the default. Set `data-bnh-theme="light"` on the document or a region to
 }
 ```
 
-The apps own font loading, persistence, and system theme detection. The library downloads no fonts and installs no global reset. Colors, surfaces, radii, fonts, and header/page offsets are available as `--bnh-*` variables. The complete defaults are also exported as `@cosborn2/ui/tokens.json`.
+The apps own font loading, persistence, and system theme detection. The library downloads no fonts and installs no global reset. Every token is a `--bnh-*` variable; the complete defaults are also exported as `@cosborn2/ui/tokens.json`.
 
-CSS uses the layer order `theme, base, components, utilities`. Host resets belong in `base`; utility overrides belong in `utilities`; ordinary unlayered CSS also overrides package component styles. Existing Tailwind v4 projects can keep their own utility classes; no package source scanning is needed. Each component accepts appropriate `className`/`style` overrides, without loading a utility-class merger.
+| Axis | Tokens | Used by |
+| --- | --- | --- |
+| Palette | `bg`, `bg-2`, `surface`, `surface-2`, `surface-3`, `input`, `hover`, `border`, `border-2`, `border-strong`, `text`, `text-dim`, `text-mute`, `accent`, `primary`, `primary-hover`, `primary-text`, `green`, `amber`, `violet`, `blue`, `red`, `orange`, `link` | Every component |
+| Typography | `font-sans`, `font-display`, `font-display-weight`, `font-mono` | Text; display weight applies to dialog and settings page titles |
+| Shape | `radius-sm`, `radius-md`, `radius-lg`, `radius-xl`, `radius-pill`, `border-width` | Every rounded or bordered component; `radius-pill` covers fully rounded controls such as pills, toasts, the theme toggle, switches, and swatches |
+| Focus | `focus-ring-width`, `focus-ring-offset`, `focus-ring-color`, `input-focus`, `input-focus-shadow` | Keyboard focus outlines; field focus borders and rings |
+| Elevation | `control-shadow`, `raised-shadow`, `menu-shadow`, `glass-shadow`, `popover-shadow` | Buttons, fields, segmented controls, and the theme toggle; raised surfaces, settings cards and sections, tables, and notices; action menus; glass headers, surfaces, and toasts; dialogs and popovers |
+| Materials | `glass-backdrop-filter`, `frosted-backdrop-filter`, `popover-backdrop-filter`, `modal-backdrop-filter`, `modal-backdrop-color`, `popover-background`, `frosted-background` | Translucent surfaces and dialog backdrops; set a filter to `none` for opaque surfaces |
+| Layout | `header-top`, `header-offset`, `page-offset` | Header and settings placement |
+
+A shadow token holds one complete `box-shadow` value (`none` is allowed). Derived tokens such as `input-focus`, `focus-ring-color`, and `primary-text` default to palette tokens, so changing `accent`, `primary`, or `bg` updates them.
+
+### Restyling components
+
+Restyle in two steps. Set tokens for decisions that cut across components, such as border width, radius, elevation, and materials. Then target the documented `bnh-*` class names for anything component-specific. Presentation lives in the stylesheets. Props such as Pill `tint` or HeaderShell `gap` never write inline declarations that a stylesheet cannot override, and the Select chevron is an SVG (`.bnh-select-icon`) that follows `color`. Per-instance values arrive as custom properties (`--bnh-pill-*`, `--bnh-header-shell-*`, `--bnh-expandable-pill-*`, `--bnh-color-picker-swatch`, `--bnh-segment-accent`, `--bnh-settings-enter-delay`), and stateful parts expose attributes such as `data-state` and `aria-pressed`.
+
+CSS uses the layer order `theme, base, components, utilities`. Package styles live in `components`, so any rule in a later layer or outside layers overrides them without extra specificity. Applications with utility classes can declare an override layer between the two, which keeps per-instance utilities in charge:
+
+```css
+@layer theme, base, components, overrides, utilities;
+@import 'tailwindcss';
+@import '@cosborn2/ui/theme.css';
+
+@layer theme {
+  :root, [data-bnh-theme="dark"] { --bnh-border-width: 2px; --bnh-raised-shadow: 4px 4px 0 #000; }
+}
+@layer overrides {
+  .bnh-button { font-weight: 700; }
+  .bnh-button:active { transform: translate(2px, 2px); box-shadow: none; }
+}
+```
+
+The package's theme selectors use `:where()`, so they have no specificity: a token you set on `:root` applies under both palettes, and `:root.light` or `[data-bnh-theme="light"]` overrides only the light one. Set palette tokens for each theme you support. To scope a custom theme to a region, put the overrides on an element that also carries `data-bnh-theme`; derived tokens then recompute from your palette inside that region. Dialogs and menus copy the tokens of the region they open from, including custom values.
+
+Host resets belong in `base`; utility overrides belong in `utilities`. Existing Tailwind v4 projects can keep their own utility classes; no package source scanning is needed. Each component accepts appropriate `className`/`style` overrides, without loading a utility-class merger.
 
 Settings layouts use `--bnh-page-offset` for a page-level banner and `--bnh-header-offset` for header placement. Applications supply those values; there is no impersonation or authentication dependency.
 

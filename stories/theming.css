@@ -1,0 +1,64 @@
+/* An application-owned theme, written the way a consumer would: tokens for
+   the cross-cutting axes, plain class selectors for everything else. Unlayered
+   rules sit above the package's `components` layer without specificity tricks.
+   The region also carries data-bnh-theme so derived tokens recompute from the
+   palette declared here. */
+.story-outline-theme {
+  --bnh-bg: #fff6e5;
+  --bnh-bg-2: #ffffff;
+  --bnh-surface: #ffffff;
+  --bnh-surface-2: #fff0c2;
+  --bnh-surface-3: #ffffff;
+  --bnh-input: #ffffff;
+  --bnh-hover: #ffe8a3;
+  --bnh-border: #111111;
+  --bnh-border-2: #111111;
+  --bnh-border-strong: #111111;
+  --bnh-text: #111111;
+  --bnh-text-dim: #3d3934;
+  --bnh-text-mute: #5c564d;
+  --bnh-accent: #5b3df5;
+  --bnh-green: #0f7a3d;
+  --bnh-red: #c2121f;
+  --bnh-primary: #ffd23f;
+  --bnh-primary-hover: #ffc300;
+  --bnh-primary-text: #111111;
+
+  --bnh-font-display-weight: 800;
+  --bnh-border-width: 2px;
+  --bnh-radius-sm: 2px;
+  --bnh-radius-md: 4px;
+  --bnh-radius-lg: 6px;
+  --bnh-radius-xl: 8px;
+  --bnh-radius-pill: 4px;
+  --bnh-focus-ring-color: #111111;
+  --bnh-control-shadow: 3px 3px 0 #111111;
+  --bnh-raised-shadow: 5px 5px 0 #111111;
+  --bnh-menu-shadow: 4px 4px 0 #111111;
+  --bnh-popover-shadow: 6px 6px 0 #111111;
+  --bnh-glass-shadow: 4px 4px 0 #111111;
+  --bnh-input-focus: #111111;
+  --bnh-input-focus-shadow: 3px 3px 0 #5b3df5;
+  --bnh-frosted-background: #ffffff;
+  --bnh-glass-backdrop-filter: none;
+  --bnh-frosted-backdrop-filter: none;
+  --bnh-modal-backdrop-filter: none;
+  --bnh-modal-backdrop-color: rgb(17 17 17 / 55%);
+
+  display: grid;
+  gap: 24px;
+  max-width: 640px;
+  padding: 24px;
+  background: var(--bnh-bg);
+  color: var(--bnh-text);
+}
+.story-outline-theme .bnh-button { font-weight: 700; }
+.story-outline-theme .bnh-pill { border-color: var(--bnh-border); color: var(--bnh-text); }
+.story-outline-theme .bnh-header-shell { position: static; width: auto; transform: none; margin: 0; padding: 10px 20px; }
+
+/* Applications often set tokens on :root inside the theme layer. The
+   package's theme selectors have zero specificity, so this also wins under
+   the light palette. No component reads --bnh-orange, so the probe is inert. */
+@layer theme {
+  :root { --bnh-orange: rgb(1, 2, 3); }
+}

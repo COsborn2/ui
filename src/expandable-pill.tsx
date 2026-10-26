@@ -1,7 +1,8 @@
 "use client";
 
-import { useId, useRef, useState, type ButtonHTMLAttributes, type ReactNode } from "react";
-import { PILL_HEIGHT, type PillProps } from "./pill.js";
+import { useId, useRef, useState, type ButtonHTMLAttributes, type CSSProperties, type ReactNode } from "react";
+import { pillStyle } from "./_pill-style.js";
+import type { PillProps } from "./pill.js";
 
 export interface ExpandablePillProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "onChange">, Pick<PillProps, "tint" | "background" | "borderColor" | "height"> {
   panel: ReactNode;
@@ -17,7 +18,7 @@ export function ExpandablePill({
   tint,
   background,
   borderColor,
-  height = PILL_HEIGHT,
+  height,
   panel,
   open,
   defaultOpen = false,
@@ -37,7 +38,6 @@ export function ExpandablePill({
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelId = useId();
   const isOpen = open ?? internalOpen;
-  const centered = panelAlign === "center";
   function changeOpen(value: boolean) {
     if (open === undefined) setInternalOpen(value);
     onOpenChange?.(value);
@@ -45,7 +45,7 @@ export function ExpandablePill({
   return (
     <span
       className="bnh-expandable-pill"
-      style={{ position: centered ? "static" : "relative" }}
+      data-align={panelAlign}
       onKeyDown={(event) => {
         // Portaled widgets remain in this React subtree, but own their keyboard
         // interaction. A nested disclosure can also consume Escape first.
@@ -64,13 +64,7 @@ export function ExpandablePill({
         aria-expanded={isOpen}
         aria-controls={panelId}
         className={["bnh-pill", "bnh-expandable-pill-trigger", className].filter(Boolean).join(" ")}
-        style={{
-          height,
-          whiteSpace: "nowrap",
-          background: background ?? (tint ? `color-mix(in oklch, ${tint} 8%, transparent)` : "transparent"),
-          border: `1px solid ${borderColor ?? (tint ? `color-mix(in oklch, ${tint} 30%, transparent)` : "var(--bnh-border)")}`,
-          ...style,
-        }}
+        style={pillStyle({ tint, background, borderColor, height }, style)}
         onClick={(event) => {
           onClick?.(event);
           if (!event.defaultPrevented) changeOpen(!isOpen);
@@ -82,19 +76,14 @@ export function ExpandablePill({
       <div
         id={panelId}
         className="bnh-expandable-pill-panel"
+        data-align={panelAlign}
+        data-state={isOpen ? "open" : "closed"}
         inert={!isOpen}
         aria-hidden={!isOpen}
         style={{
-          top: `calc(100% + ${panelGap}px)`,
-          ...(centered
-            ? { left: 16, right: 16, display: "flex", justifyContent: "center" }
-            : { right: 0, maxWidth: panelMaxWidth }),
-          opacity: isOpen ? 1 : 0,
-          pointerEvents: isOpen ? "auto" : "none",
-          transform: isOpen ? "translateY(0) scale(1)" : "translateY(-4px) scale(.98)",
-          transformOrigin: centered ? "top center" : "top right",
-          visibility: isOpen ? "visible" : "hidden",
-        }}
+          "--bnh-expandable-pill-gap": `${panelGap}px`,
+          "--bnh-expandable-pill-panel-max-width": typeof panelMaxWidth === "number" ? `${panelMaxWidth}px` : panelMaxWidth,
+        } as CSSProperties}
       >
         {panel}
       </div>
