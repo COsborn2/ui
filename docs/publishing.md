@@ -30,6 +30,8 @@ Set the GitHub Actions **repository variable** `UI_NPM_PUBLISH_ENABLED` to `true
 
 The publishing job needs `contents: write` for release tags and GitHub releases, and `id-token: write` for npm. It cannot bypass the protected main branch and never pushes a version commit.
 
+A new npm trusted publisher must complete its first successful publication within two days. Otherwise it expires: recreate the same connection in npm and retry promptly. A skipped workflow does not activate it. If npm returns `ENEEDAUTH`, verify this expiry and the exact repository, workflow, environment, and direct-publish permission before retrying.
+
 ## Dependency automation
 
 Dependabot checks Bun dependencies daily and GitHub Actions weekly. Verified compatible updates can receive automated approval and an exact-head squash merge after required CI passes. Major upgrades, prerelease dependencies, pre-1.0 minor upgrades, Lucide, and broader contract changes require review. GitHub Actions updates do not publish npm releases.

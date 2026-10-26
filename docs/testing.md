@@ -29,6 +29,8 @@ bun run test --coverage            # text, HTML, and LCOV reports under coverage
 
 `bun run build-storybook` produces a static component catalog under `storybook-static/`. `bun run check:package` checks the already-built npm file list and export destinations; it performs no SSR or size measurements. CI and the publish workflow run lint/types, build, the full test suite, the Storybook build, and this package-content check.
 
+The Storybook preview is browser-only, so its build filters Rollup's known `use client` directive warning and the matching unmapped-directive warning in local source. The published library keeps those directives for React Server Components. Other diagnostics remain visible, including Vite's non-blocking large-chunk advisory for the documentation and accessibility tools; these files are excluded from the npm package.
+
 ## Test conventions
 
 - Render the public component and interact as its consumer would. Prefer role/name/label queries and `userEvent`; avoid snapshots, private React element inspection, hook internals, and incidental class names.
