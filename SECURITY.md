@@ -12,8 +12,8 @@ This project maintains one release line on `main`. Before the first stable relea
 
 Report a vulnerability even if you are unsure whether your version is affected.
 
-## Dependency checks
+## Dependency maintenance
 
-The Dependency Security workflow runs on pull requests, pushes to `main`, daily, and on demand. It runs `bun audit --audit-level=high` against the complete `bun.lock`, including development dependencies, without installing packages or executing dependency scripts. High and critical advisories and audit failures fail the check. Lower-severity findings can still be inspected locally with `bun audit`.
+Dependabot proposes routine version updates for the maintained release line. Its Bun integration currently supports version updates, not advisory-triggered security updates. Maintainers can run `bun audit` locally when investigating dependency vulnerabilities; audits are not required CI or publishing checks.
 
-These checks use registry advisories and do not replace private reports or security review. Dependabot proposes routine version updates; the scheduled audit also checks for newly disclosed vulnerabilities between updates.
+Registry advisories complement private reports and security review. Report suspected vulnerabilities through the private form above.

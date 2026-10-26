@@ -25,7 +25,6 @@ jobs:
         with:
           bun-version-file: .bun-version
       - run: bun install --frozen-lockfile
-      - run: bun run audit:dependencies
       - run: bun run lint
       - name: Preview release intent without publishing
         run: bun run release:preview

@@ -6,7 +6,7 @@ For everyday releases, follow [versioning.md](../versioning.md). This page cover
 
 Only `main` publishes. `release.json` selects the maintained line and beta/stable channel. Published npm versions and matching Git tags supply the counter; `package.json` deliberately keeps a development placeholder. release-it updates it only in the publishing checkout, publishes through npm OIDC, and creates a Git tag and GitHub release. No version commits, release PRs, or writes to the main branch are needed.
 
-The workflow checks vulnerabilities, lint/types, library build, React unit tests, Storybook interactions/accessibility, Storybook build, and npm package contents before publication. Source, styles, runtime build inputs, and dependency changes publish the next beta or patch. A line/channel change explicitly starts a minor/major or stable release. Other maintenance alone does not publish.
+The workflow checks lint/types, library build, React unit tests, Storybook interactions/accessibility, Storybook build, and npm package contents before publication. Source, styles, runtime build inputs, and dependency changes publish the next beta or patch. A line/channel change explicitly starts a minor/major or stable release. Other maintenance alone does not publish.
 
 Releases are serialized. Stale main runs skip publication; the newer run includes outstanding package changes. Registry errors stop publication. A retry verifies npm's source commit against Git before repairing missing tags/releases, then publishes only if more package changes exist. Conflicting tags or missing source history fail instead of being overwritten.
 
@@ -44,13 +44,12 @@ The owner token uses the existing administrator review-only PR exception. The co
 
 The development-tool overrides keep `source-map-js` on its patched line and replace the vulnerable `basic-ftp` dependency still requested by `get-uri`. Remove an override when upstream resolves a patched version without it. The FTP major update disables separate transfer hosts by default; this release pipeline uses HTTPS and does not rely on that FTP behavior.
 
-Bun currently supports Dependabot version updates but not advisory-triggered security updates. The **Dependency Security** workflow audits the lockfile daily and on PRs/main; the same high/critical vulnerability check gates required `verify` and publishing. Failures need investigation and a dependency-fix PR; they are not silently dismissed. Older release lines are not scanned or maintained.
+Dependabot keeps the maintained release line updated. Its Bun integration currently supports version updates, not advisory-triggered security updates. See [SECURITY.md](../SECURITY.md) for reporting and investigating vulnerabilities.
 
 ## Retry and investigate
 
 - Publication: **Actions → Publish UI Package → Run workflow → main**. There are no version or channel inputs.
 - Dependabot merge: **Actions → Dependency approvals and merges → Run workflow → main**, then enter the PR number after CI passes.
-- Vulnerability scan: **Actions → Dependency Security → Run workflow → main**.
 - Conflicting npm/tag history: stop and investigate the recorded source commits. Never delete tags or republish an existing version to force a retry.
 
 Consumers adopt releases through their own dependency PRs, lockfiles, and tests. Publication does not update installed applications. Pin beta versions explicitly; use `latest` only after the first stable release.

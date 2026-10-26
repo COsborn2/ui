@@ -12,7 +12,7 @@ bunx playwright install chromium
 bun run storybook
 ```
 
-Before submitting a PR, run `bun run audit:dependencies`, `bun run lint`, `bun run build`, `bun run test`, `bun run build-storybook`, and `bun run check:package`. `lint` includes type checking of the library, stories, tests, and tooling. Use the [testing guide](docs/testing.md) for focused tests and conventions. `bun run dev` watches library source and styles.
+Before submitting a PR, run `bun run lint`, `bun run build`, `bun run test`, `bun run build-storybook`, and `bun run check:package`. `lint` includes type checking of the library, stories, tests, and tooling. Use the [testing guide](docs/testing.md) for focused tests and conventions. `bun run dev` watches library source and styles.
 
 ## Component changes
 
