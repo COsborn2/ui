@@ -5,7 +5,7 @@ Lightweight React UI components: buttons, forms, dialogs, menus, notifications, 
 Plain CSS, shared theme tokens, and individual component imports. Works without Tailwind.
 
 ```sh
-npm install @cosborn2/ui@beta
+npm install @cosborn2/ui
 ```
 
 [Component guide](https://github.com/COsborn2/ui/blob/main/docs/components.md) · [Versioning](https://github.com/COsborn2/ui/blob/main/versioning.md) · [Contributing](https://github.com/COsborn2/ui/blob/main/CONTRIBUTING.md)

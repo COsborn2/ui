@@ -6,10 +6,10 @@ The package works without Tailwind, a theme provider, Next.js, or a CSS-in-JS ru
 
 ## Install and render a button
 
-Install the `beta` tag or an explicit version for prereleases. Stable releases use the default `latest` tag.
+Install the current stable release from the default `latest` tag.
 
 ```sh
-npm install @cosborn2/ui@beta react react-dom
+npm install @cosborn2/ui react react-dom
 ```
 
 ```tsx

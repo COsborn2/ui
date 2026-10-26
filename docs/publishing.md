@@ -10,7 +10,7 @@ The workflow checks lint/types, library build, React unit tests, Storybook inter
 
 Releases are serialized. Stale main runs skip publication; the newer run includes outstanding package changes. Registry errors stop release planning. After publication, verification waits up to three minutes for the exact version to become visible; source mismatches still fail immediately. A retry verifies npm's source commit against Git before repairing missing tags/releases, then publishes only if more package changes exist. Conflicting tags or missing source history fail instead of being overwritten.
 
-The original `0.1.0-beta.0` was published from a tarball without source metadata or a Git tag. It is the sole legacy bootstrap exception; the first automated release advances to `0.1.0-beta.1` and records its actual commit.
+The original `0.1.0-beta.0` was published from a tarball without source metadata or a Git tag. It is the sole legacy bootstrap exception; the first automated release, `0.1.0-beta.1`, recorded its actual commit.
 
 ## Trusted publishing setup
 
@@ -54,4 +54,4 @@ Dependabot keeps the maintained release line updated. Its Bun integration curren
 - Dependabot merge: **Actions → Dependency approvals and merges → Run workflow → main**, then enter the PR number after CI passes.
 - Conflicting npm/tag history: stop and investigate the recorded source commits. Never delete tags or republish an existing version to force a retry.
 
-Consumers adopt releases through their own dependency PRs, lockfiles, and tests. Publication does not update installed applications. Pin beta versions explicitly; use `latest` only after the first stable release.
+Consumers adopt releases through their own dependency PRs, lockfiles, and tests. Publication does not update installed applications. The maintained stable line is `0.2.x`. Use an exact published version in application lockfiles; npm’s `latest` tag identifies the current stable release.
