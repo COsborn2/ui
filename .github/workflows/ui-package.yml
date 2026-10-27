@@ -27,8 +27,6 @@ jobs:
       - name: Preview release intent without publishing
         run: bun run release:preview
       - run: bun run build
-      - name: Install browser system dependencies
-        run: bunx playwright install-deps chromium
       - name: Install Chromium headless shell
         run: bunx playwright install --only-shell chromium
       - name: React unit and Storybook interaction/accessibility tests
