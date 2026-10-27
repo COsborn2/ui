@@ -2,6 +2,9 @@ name: UI Package
 
 on:
   pull_request:
+  # The merge queue requires `verify` on each queued group before it merges.
+  merge_group:
+    types: [checks_requested]
   workflow_dispatch:
 
 permissions:

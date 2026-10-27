@@ -1,6 +1,11 @@
 import { dependencyReviewState, inspectDependencyPolicy, type DependencyPolicyInspection, type PolicyPullRequest, type PolicyReview } from "./dependency-policy.js";
 
 const SHA = /^[a-f0-9]{40}$/;
+// One line, no brackets (which carry [skip ci]-style directives), no skip-checks trailer.
+const SAFE_TITLE = /^(?!.*skip-checks)[^\[\]\r\n]{1,256}$/i;
+const ENQUEUE = `mutation($pullRequestId: ID!, $expectedHeadOid: GitObjectID!) {
+  enqueuePullRequest(input: { pullRequestId: $pullRequestId, expectedHeadOid: $expectedHeadOid }) { mergeQueueEntry { id } }
+}`;
 interface MergeOptions {
   repository: string;
   readToken: string;
@@ -12,7 +17,7 @@ interface MergeOptions {
   fetchGitHub?: typeof fetch;
 }
 
-/** Revalidate with the workflow token, then use the owner PAT for one exact-head squash merge. */
+/** Revalidate with the workflow token, then use the owner PAT to queue the exact validated head for a squash merge. */
 export async function runDependencyMerge({ repository, readToken, mergeToken, expectedPr, expectedHead, expectedBase,
   inspect = inspectDependencyPolicy, fetchGitHub = fetch }: MergeOptions): Promise<string> {
   if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repository) || !Number.isSafeInteger(expectedPr) || expectedPr < 1
@@ -52,33 +57,38 @@ export async function runDependencyMerge({ repository, readToken, mergeToken, ex
   if (reviewState.changesRequested) throw new Error("An active changes-requested review blocks automatic merging, including requests on earlier commits.");
   if (!reviewState.automationApproved) throw new Error("The current head needs an active github-actions[bot] approval before merging.");
 
-  const current = await api<PolicyPullRequest>(`${repoPath}/pulls/${expectedPr}`);
-  const main = await api<{ object: { sha: string } }>(`${repoPath}/git/ref/heads/main`);
-  if (main.object.sha !== expectedBase || current.base.sha !== expectedBase || current.head.sha !== expectedHead
+  const current = await api<PolicyPullRequest & { node_id?: string }>(`${repoPath}/pulls/${expectedPr}`);
+  if (current.base.sha !== expectedBase || current.head.sha !== expectedHead
     || current.number !== expectedPr || current.state !== "open" || current.draft || current.base.ref !== "main"
     || current.base.repo.full_name !== repository || current.head.repo?.full_name !== repository
     || current.head.ref !== validated.head.ref || current.user.login !== validated.user.login
-    || current.title !== validated.title || current.body !== validated.body) {
-    throw new Error("PR identity, metadata, head, or main changed after validation; refusing to merge.");
+    || current.title !== validated.title || current.body !== validated.body || typeof current.node_id !== "string" || !current.node_id) {
+    throw new Error("PR identity, metadata, head, or base changed after validation; refusing to enqueue.");
   }
+  // The merge queue ignores commit text supplied at enqueue time and squashes with
+  // the repository default, set to the pull request title alone. Upstream text in
+  // the title must not carry a CI-skip directive into main's history.
+  if (!SAFE_TITLE.test(current.title)) throw new Error("The PR title is not a safe squash commit subject; refusing to enqueue.");
 
-  // The SHA is a server-enforced compare-and-swap. The independent core ruleset
-  // still enforces current CI, an up-to-date branch and resolved conversations.
-  // GitHub has no base/review-state CAS; those are rechecked immediately above.
-  const merged = await api<{ merged: boolean; sha: string }>(`${repoPath}/pulls/${expectedPr}/merge`, "PUT", {
-    sha: expectedHead, merge_method: "squash", commit_title: decision.subject,
-    commit_message: "Automated dependency maintenance validated against this exact pull request head. Required CI and repository protections remain enforced.",
-  }, true);
-  if (!merged.merged || !SHA.test(merged.sha)) throw new Error("GitHub did not confirm a successful squash merge.");
-  return merged.sha;
+  // expectedHeadOid is a server-enforced compare-and-swap. The queue re-runs the
+  // required checks against the latest main before squash merging; GitHub has no
+  // base/review-state CAS, so those are rechecked immediately above.
+  const queued = await api<{ data?: { enqueuePullRequest?: { mergeQueueEntry?: { id?: string } | null } | null } | null; errors?: { message?: string }[] }>(
+    "/graphql", "POST", { query: ENQUEUE, variables: { pullRequestId: current.node_id, expectedHeadOid: expectedHead } }, true);
+  const entry = queued.data?.enqueuePullRequest?.mergeQueueEntry?.id;
+  if (queued.errors?.length || typeof entry !== "string" || !entry) {
+    const reasons = (queued.errors ?? []).map((error) => error.message).filter(Boolean).join("; ");
+    throw new Error(`GitHub did not queue the validated head${reasons ? `: ${reasons}` : ""}.`);
+  }
+  return entry;
 }
 
 if (import.meta.main) {
   if (process.env.GITHUB_REF !== "refs/heads/main") throw new Error("Automatic dependency merging runs only from trusted main.");
-  const sha = await runDependencyMerge({
+  const entry = await runDependencyMerge({
     repository: process.env.GITHUB_REPOSITORY ?? "", readToken: process.env.GH_TOKEN ?? "",
     mergeToken: process.env.DEPENDABOT_AUTOMERGE_PAT ?? "", expectedPr: Number(process.env.PR_NUMBER),
     expectedHead: process.env.PR_HEAD_SHA ?? "", expectedBase: process.env.PR_BASE_SHA ?? "",
   });
-  console.log(`Merged the validated dependency PR as ${sha}.`);
+  console.log(`Queued the validated dependency PR (merge queue entry ${entry}); the queue squash merges it once required checks pass.`);
 }
