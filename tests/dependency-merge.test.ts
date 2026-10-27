@@ -5,8 +5,7 @@ import { dependencyReviewState, type DependencyPolicyInspection, type PolicyRevi
 const repository = "COsborn2/ui";
 const base = "a".repeat(40);
 const head = "b".repeat(40);
-const other = "c".repeat(40);
-const entry = "MQE_kwDO42";
+const merged = "c".repeat(40);
 function review(id: number, state: string, login = "github-actions[bot]", commit = head): PolicyReview {
   return { id, state, user: { login }, commit_id: commit };
 }
@@ -16,28 +15,27 @@ function fixture() {
     decision: { allowed: true, kind: "dependency", reason: "Validated", subject: "fix(deps): update reviewed dependencies (#42)" },
     input: {
       repository, actor: "dependabot[bot]", expectedHead: head,
-      pullRequest: { number: 42, title: "fix(deps): bump example from 1.0.0 to 1.0.1", body: "Upstream notes [skip ci]", state: "open", draft: false,
+      pullRequest: { number: 42, title: "Dependency update [skip ci]", body: "Upstream notes", state: "open", draft: false,
         user: { login: "dependabot[bot]" }, base: { ref: "main", sha: base, repo: { full_name: repository } },
         head: { ref: "dependabot/bun/example", sha: head, repo: { full_name: repository } }, commits: 1, changed_files: 2 },
       commits: [], files: [], metadata: [], basePackageJson: "{}", headPackageJson: "{}",
     },
   };
-  const current: typeof inspection.input.pullRequest & { node_id?: string } = { ...structuredClone(inspection.input.pullRequest), node_id: "PR_kwDO42" };
-  const state = { owner: "COsborn2", reviews: [review(1, "APPROVED")], enqueueStatus: 200,
-    enqueueBody: { data: { enqueuePullRequest: { mergeQueueEntry: { id: entry } } } } as Record<string, unknown>,
-    afterReviews: undefined as (() => void) | undefined };
+  const current = structuredClone(inspection.input.pullRequest);
+  const state = { owner: "COsborn2", main: base, reviews: [review(1, "APPROVED")], mergeStatus: 200, merged: true, afterReviews: undefined as (() => void) | undefined };
   const calls: { path: string; method: string; token: string | null; body?: Record<string, unknown> }[] = [];
   const fetchGitHub = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
     const path = new URL(String(url)).pathname;
     const method = init?.method ?? "GET";
     calls.push({ path, method, token: new Headers(init?.headers).get("authorization"), ...(init?.body ? { body: JSON.parse(String(init.body)) } : {}) });
     if (path === "/user") return Response.json({ login: state.owner });
+    if (path.endsWith("/git/ref/heads/main")) return Response.json({ object: { sha: state.main } });
     if (path.endsWith("/reviews")) {
       const response = Response.json(state.reviews);
       state.afterReviews?.();
       return response;
     }
-    if (path === "/graphql" && method === "POST") return Response.json(state.enqueueBody, { status: state.enqueueStatus });
+    if (path.endsWith("/merge") && method === "PUT") return Response.json({ merged: state.merged, sha: merged }, { status: state.mergeStatus });
     if (path.endsWith("/pulls/42")) return Response.json(current);
     throw new Error(`Unexpected request ${method} ${path}`);
   });
@@ -48,19 +46,18 @@ function fixture() {
 }
 
 describe("dependency merge", () => {
-  test("revalidates policy and queues only the exact validated head", async () => {
+  test("revalidates policy and sends a single exact-head squash with controlled commit text", async () => {
     const context = fixture();
-    expect(await runDependencyMerge(context.options)).toBe(entry);
+    expect(await runDependencyMerge(context.options)).toBe(merged);
     expect(context.inspect).toHaveBeenCalledOnce();
     const mutations = context.calls.filter((call) => call.method !== "GET");
-    expect(mutations).toEqual([{ path: "/graphql", method: "POST", token: "Bearer merge-token", body: {
-      query: expect.stringContaining("enqueuePullRequest(input: { pullRequestId: $pullRequestId, expectedHeadOid: $expectedHeadOid })"),
-      variables: { pullRequestId: "PR_kwDO42", expectedHeadOid: head },
+    expect(mutations).toEqual([{ path: "/repos/COsborn2/ui/pulls/42/merge", method: "PUT", token: "Bearer merge-token", body: {
+      sha: head, merge_method: "squash", commit_title: "fix(deps): update reviewed dependencies (#42)",
+      commit_message: "Automated dependency maintenance validated against this exact pull request head. Required CI and repository protections remain enforced.",
     } }]);
-    // The queue ignores commit text, so none is sent; the upstream body never reaches the request.
-    expect(JSON.stringify(mutations)).not.toMatch(/commit|headline|skip ci/i);
+    expect(JSON.stringify(mutations)).not.toContain("skip ci");
     expect(context.calls.filter((call) => call.path !== "/user" && call.method === "GET").every((call) => call.token === "Bearer read-token")).toBe(true);
-    expect(context.calls.at(-2)?.path).toBe("/repos/COsborn2/ui/pulls/42");
+    expect(context.calls.at(-2)?.path).toMatch(/\/git\/ref\/heads\/main$/);
   });
 
   test("does not make API requests when the credential is absent or policy now refuses", async () => {
@@ -80,33 +77,25 @@ describe("dependency merge", () => {
     expect(context.calls).toHaveLength(0);
   });
 
-  test.each(["Dependency update [skip ci]", "bump example [ci skip]", "bump example\nskip-checks: true", "skip-checks: true"])(
-    "refuses a title the squash commit cannot safely use (%j)", async (title) => {
-      const context = fixture();
-      context.inspection.input.pullRequest.title = title;
-      context.current.title = title;
-      await expect(runDependencyMerge(context.options)).rejects.toThrow("safe squash commit subject");
-      expect(context.calls.some((call) => call.method !== "GET")).toBe(false);
-    });
-
-  test("queues even after main advances; the queue retests against the latest main", async () => {
+  test("uses the controlled CI-only subject for an eligible action update", async () => {
     const context = fixture();
-    expect(await runDependencyMerge(context.options)).toBe(entry);
-    expect(context.calls.some((call) => call.path.endsWith("/git/ref/heads/main"))).toBe(false);
+    context.inspection.decision.subject = "chore(ci): update reviewed actions (#42)";
+    await runDependencyMerge(context.options);
+    expect(context.calls.find((call) => call.method === "PUT")?.body?.commit_title).toBe("chore(ci): update reviewed actions (#42)");
   });
 
   test.each(["expectedPr", "expectedHead", "expectedBase"] as const)("does not widen validation when %s changes", async (field) => {
     const context = fixture();
-    const options = { ...context.options, [field]: field === "expectedPr" ? 43 : other };
+    const options = { ...context.options, [field]: field === "expectedPr" ? 43 : merged };
     await expect(runDependencyMerge(options)).rejects.toThrow("validated PR/base/head changed");
     expect(context.calls).toHaveLength(0);
   });
 
   const unsafe: [string, (context: ReturnType<typeof fixture>) => void][] = [
     ["different token owner", (x) => { x.state.owner = "another-maintainer"; }],
-    ["head advanced", (x) => { x.current.head.sha = other; }],
-    ["base advanced", (x) => { x.current.base.sha = other; }],
-    ["missing node id", (x) => { delete x.current.node_id; }],
+    ["main advanced", (x) => { x.state.main = merged; }],
+    ["head advanced", (x) => { x.current.head.sha = merged; }],
+    ["base advanced", (x) => { x.current.base.sha = merged; }],
     ["retargeted branch", (x) => { x.current.base.ref = "other"; }],
     ["forked head", (x) => { x.current.head.repo = { full_name: "outside/ui" }; }],
     ["changed author", (x) => { x.current.user.login = "someone"; }],
@@ -121,7 +110,7 @@ describe("dependency merge", () => {
     ["human changes requested on old commit", (x) => { x.state.reviews.push(review(2, "CHANGES_REQUESTED", "COsborn2", base)); }],
     ["comment after human changes requested", (x) => { x.state.reviews.push(review(2, "CHANGES_REQUESTED", "COsborn2", base), review(3, "COMMENTED", "COsborn2")); }],
   ];
-  test.each(unsafe)("never queues for %s", async (_label, alter) => {
+  test.each(unsafe)("never sends a merge for %s", async (_label, alter) => {
     const context = fixture(); alter(context);
     await expect(runDependencyMerge(context.options)).rejects.toThrow();
     expect(context.calls.some((call) => call.method !== "GET")).toBe(false);
@@ -129,27 +118,20 @@ describe("dependency merge", () => {
 
   test("rejects a base change while reviews are being read", async () => {
     const context = fixture();
-    context.state.afterReviews = () => { context.current.base.sha = other; };
-    await expect(runDependencyMerge(context.options)).rejects.toThrow("base changed after validation");
+    context.state.afterReviews = () => { context.state.main = merged; context.current.base.sha = merged; };
+    await expect(runDependencyMerge(context.options)).rejects.toThrow("main changed after validation");
     expect(context.calls.some((call) => call.method !== "GET")).toBe(false);
   });
 
-  test.each([403, 422])("does not retry or bypass a server refusal (%i)", async (status) => {
-    const context = fixture(); context.state.enqueueStatus = status;
+  test.each([405, 409])( "does not retry or bypass a server refusal (%i)", async (status) => {
+    const context = fixture(); context.state.mergeStatus = status;
     await expect(runDependencyMerge(context.options)).rejects.toThrow(`failed (${status})`);
     expect(context.calls.filter((call) => call.method !== "GET")).toHaveLength(1);
   });
 
-  test("surfaces a GraphQL refusal without retrying", async () => {
-    const context = fixture();
-    context.state.enqueueBody = { data: { enqueuePullRequest: null }, errors: [{ message: "Pull request is not mergeable" }] };
-    await expect(runDependencyMerge(context.options)).rejects.toThrow("did not queue the validated head: Pull request is not mergeable");
-    expect(context.calls.filter((call) => call.method !== "GET")).toHaveLength(1);
-  });
-
-  test("requires an explicit queue entry", async () => {
-    const context = fixture(); context.state.enqueueBody = { data: { enqueuePullRequest: { mergeQueueEntry: null } } };
-    await expect(runDependencyMerge(context.options)).rejects.toThrow("did not queue the validated head");
+  test("requires an explicit successful merge response", async () => {
+    const context = fixture(); context.state.merged = false;
+    await expect(runDependencyMerge(context.options)).rejects.toThrow("did not confirm");
   });
 });
 

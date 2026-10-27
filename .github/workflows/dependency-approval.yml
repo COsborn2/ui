@@ -60,7 +60,7 @@ jobs:
             jq -n --arg commit "$PR_HEAD_SHA" '{event:"APPROVE",commit_id:$commit,body:"Automated Dependabot policy approval of this exact commit after successful verification. Required CI remains enforced. Automatic merge may use the repository owner’s existing review-only PR exception."}' > "$RUNNER_TEMP/dependency-approval.json"
             gh api --method POST "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/reviews" --input "$RUNNER_TEMP/dependency-approval.json"
           fi
-      - name: Revalidate and queue the approved commit
+      - name: Revalidate and squash merge the approved commit
         if: steps.policy.outputs.allowed == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -68,6 +68,6 @@ jobs:
           PR_NUMBER: ${{ steps.policy.outputs.pr_number }}
           PR_HEAD_SHA: ${{ steps.policy.outputs.head_sha }}
           PR_BASE_SHA: ${{ steps.policy.outputs.base_sha }}
-        # The PAT is exposed only here, to queue the exact head under the owner's
-        # existing review exception. The queue still re-runs required CI.
+        # The PAT is exposed only here, so post-merge push/publish workflows run.
+        # Reuse only the owner's existing review exception; core CI has no bypass.
         run: bun scripts/dependency-merge.ts
