@@ -34,21 +34,17 @@ A new npm trusted publisher must complete its first successful publication withi
 
 ## Dependency automation
 
-Dependabot checks Bun dependencies daily and GitHub Actions weekly. Verified compatible updates can receive automated approval and are added to the merge queue at their exact validated head; the queue re-runs required CI against the latest `main` and squash merges. Major upgrades, prerelease dependencies, pre-1.0 minor upgrades, Lucide, and broader contract changes require review. GitHub Actions updates do not publish npm releases.
+Dependabot checks Bun dependencies daily and GitHub Actions weekly. Verified compatible updates can receive automated approval and an exact-head squash merge after required CI passes. Major upgrades, prerelease dependencies, pre-1.0 minor upgrades, Lucide, and broader contract changes require review. GitHub Actions updates do not publish npm releases.
 
 Dependabot waits four days after a release before proposing it (`cooldown`), and the root `bunfig.toml` stops Bun from resolving any package version published in the last three days, so a broken or compromised release has time to be caught first. Installs from `bun.lock` are unaffected. To take an urgent fix sooner, run `bun update <package> --minimum-release-age 0`.
 
-Store an expiring, repository-scoped token owned by `COsborn2` in the Actions secret `DEPENDABOT_AUTOMERGE_PAT`. It needs Contents and Pull requests read/write; Workflows write is needed for action updates. The token is used only to add the PR to the merge queue. It is not an npm credential.
+Store an expiring, repository-scoped token owned by `COsborn2` in the Actions secret `DEPENDABOT_AUTOMERGE_PAT`. It needs Contents and Pull requests read/write; Workflows write is needed for action updates. The token is used only for the final merge, so GitHub triggers the subsequent publishing workflow. It is not an npm credential.
 
 Enable **Settings → Actions → General → Allow GitHub Actions to create and approve pull requests**, keeping default token permissions read-only. The built-in Actions token supplies the commit-bound approval.
 
 The trusted-main workflow checks signed Dependabot metadata, allowed file/version changes, successful CI for the current commit, review objections, and current branch state. It does not execute PR code or install its dependencies with privileged credentials. Human PRs and version-only release PRs are ineligible.
 
-The owner token uses the existing administrator review-only PR exception. The core protection ruleset has no bypass: the merge queue, required CI, resolved conversations, and squash-only merges remain enforced. A changed head/base or outstanding changes request stops the automation before it queues. Head matching is atomic (`expectedHeadOid`); review state is rechecked immediately before queueing. A dedicated GitHub App can replace the owner token later.
-
-The merge queue ignores commit text supplied when a PR is queued and uses the repository's squash default. Keep **Settings → General → Pull Requests → Allow squash merging → Default commit message** on **Pull request title**, so upstream release notes in Dependabot PR descriptions and commits never become commit text on `main`. The automation also refuses PR titles containing brackets or a `skip-checks` trailer, which keeps CI-skip directives away from the publish workflow.
-
-The queue itself is the **Require merge queue** rule in the main protection ruleset: squash merge method, and `verify` as the only required status check. The queue replaces **Require branches to be up to date before merging**, so leave that off. `ui-package.yml` runs `verify` on `merge_group` events so queued groups report the check.
+The owner token uses the existing administrator review-only PR exception. The core protection ruleset has no bypass: required CI, resolved conversations, and squash-only merges remain enforced. A changed head/base or outstanding changes request stops the merge. Head matching is atomic; review state is rechecked immediately before submission. A dedicated GitHub App can replace the owner token later.
 
 The development-tool overrides keep `source-map-js` on its patched line and replace the vulnerable `basic-ftp` dependency still requested by `get-uri`. Remove an override when upstream resolves a patched version without it. The FTP major update disables separate transfer hosts by default; this release pipeline uses HTTPS and does not rely on that FTP behavior.
 
