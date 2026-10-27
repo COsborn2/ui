@@ -59,6 +59,10 @@ updates:
     groups:
       minor-and-patch:
         update-types: ["minor", "patch"]
+      # Action majors need review either way; one PR keeps them to one
+      # review and one branch update.
+      majors:
+        update-types: ["major"]
     open-pull-requests-limit: 5
     # Same delay as package updates.
     cooldown:
