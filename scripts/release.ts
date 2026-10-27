@@ -46,6 +46,19 @@ export function verifyReleaseRecord(published: PublishedVersion, tagHead: string
   return published.gitHead;
 }
 
+/** Previews only. A tag ahead of npm usually means main is still publishing it,
+ * and npm can trail the tag by minutes, so preview against that tagged commit
+ * instead of failing every PR that runs meanwhile. Publishing keeps the hard stop. */
+export function previewBaseline(published: PublishedVersion, tags: string[], tagCommit: (tag: string) => string | null): PublishedVersion {
+  const newest = tags.filter(tag => tag.startsWith("v") && valid(tag.slice(1)) === tag.slice(1))
+    .map(tag => tag.slice(1)).sort(rcompare)[0];
+  if (!newest || !gt(newest, published.version)) return published;
+  const gitHead = tagCommit(`v${newest}`);
+  if (!gitHead) throw new Error(`Release tag v${newest} does not resolve to a commit.`);
+  releaseChannel(newest);
+  return { name: packageName, version: newest, gitHead };
+}
+
 function command(program: string, args: string[], allowFailure = false): string | null {
   const result = spawnSync(program, args, { cwd: root, encoding: "utf8", env: process.env });
   if (result.error) throw result.error;
@@ -132,10 +145,15 @@ async function main(): Promise<void> {
     git("fetch", "origin", "--tags");
   }
   const policy = readPolicy(JSON.parse(await readFile(resolve(root, "release.json"), "utf8")));
-  const published = await registry();
-  const tag = `v${published.version}`;
-  const tagHead = command("git", ["rev-parse", "--verify", `refs/tags/${tag}^{commit}`], true);
   const tags = git("tag", "--list", "v*").split("\n").filter(Boolean);
+  const tagCommit = (tag: string) => command("git", ["rev-parse", "--verify", `refs/tags/${tag}^{commit}`], true);
+  const registryVersion = await registry();
+  const published = dryRun ? previewBaseline(registryVersion, tags, tagCommit) : registryVersion;
+  if (published !== registryVersion) {
+    await summary(`v${published.version} is tagged but not on npm yet (npm has ${registryVersion.version}); previewing against the tag.`);
+  }
+  const tag = `v${published.version}`;
+  const tagHead = tagCommit(tag);
   const source = verifyReleaseRecord(published, tagHead, tags);
   if (source) {
     if (command("git", ["merge-base", "--is-ancestor", source, head], true) === null) {

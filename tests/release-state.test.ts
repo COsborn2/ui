@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, test } from "vitest";
-import { latestPublished, verifyReleaseRecord, type PublishedVersion } from "../scripts/release.js";
+import { latestPublished, previewBaseline, verifyReleaseRecord, type PublishedVersion } from "../scripts/release.js";
 
 const name = "@cosborn2/ui";
 const source = "a".repeat(40);
@@ -46,6 +46,33 @@ describe("published npm release state", () => {
 
   test("fails on an unsupported newer prerelease rather than silently using an older stable version", () => {
     expect(() => latestPublished(metadata(published("0.1.0"), published("0.2.0-rc.1")))).toThrow("Unsupported release version");
+  });
+});
+
+describe("release preview while main is still publishing", () => {
+  const tagCommits: Record<string, string> = { "v0.1.4": source, "v0.1.5": differentSource };
+  const tagCommit = (tag: string) => tagCommits[tag] ?? null;
+
+  test("previews against a release tag that npm doesn't show yet", () => {
+    const baseline = previewBaseline(published("0.1.4"), ["v0.1.3", "v0.1.4", "v0.1.5"], tagCommit);
+    expect(baseline).toEqual(published("0.1.5", differentSource));
+    expect(verifyReleaseRecord(baseline, differentSource, ["v0.1.3", "v0.1.4", "v0.1.5"])).toBe(differentSource);
+  });
+
+  test("keeps npm's version when no tag is ahead of it", () => {
+    const current = published("0.1.4");
+    expect(previewBaseline(current, ["v0.1.3", "v0.1.4"], tagCommit)).toBe(current);
+    expect(previewBaseline(current, [], tagCommit)).toBe(current);
+  });
+
+  test("ignores tags that aren't release versions", () => {
+    const current = published("0.1.4");
+    expect(previewBaseline(current, ["v0.1.4", "v9", "vnext", "0.9.0"], tagCommit)).toBe(current);
+  });
+
+  test("refuses a newer tag without a commit or with an unsupported version", () => {
+    expect(() => previewBaseline(published("0.1.4"), ["v0.1.6"], tagCommit)).toThrow("does not resolve");
+    expect(() => previewBaseline(published("0.1.4"), ["v0.2.0-rc.1"], () => source)).toThrow("Unsupported release version");
   });
 });
 
