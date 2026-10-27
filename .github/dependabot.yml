@@ -40,8 +40,9 @@ updates:
       minor-and-patch:
         update-types: ["minor", "patch"]
     ignore:
-      # Keep static icons server-compatible. New Lucide releases require a
-      # deliberate compatibility review, including patch releases.
+      # New Lucide releases require a deliberate compatibility review, including
+      # patch releases: 1.x removed brand icons and renders every icon as a
+      # client component, so check removals and rendering boundaries.
       - dependency-name: "lucide-react"
         versions: ["*"]
     open-pull-requests-limit: 10
