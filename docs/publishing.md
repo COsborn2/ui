@@ -36,6 +36,8 @@ A new npm trusted publisher must complete its first successful publication withi
 
 Dependabot checks Bun dependencies daily and GitHub Actions weekly. Verified compatible updates can receive automated approval and an exact-head squash merge after required CI passes. Major upgrades, prerelease dependencies, pre-1.0 minor upgrades, Lucide, and broader contract changes require review. GitHub Actions updates do not publish npm releases.
 
+Dependabot waits four days after a release before proposing it (`cooldown`), and the root `bunfig.toml` stops Bun from resolving any package version published in the last three days, so a broken or compromised release has time to be caught first. Installs from `bun.lock` are unaffected. To take an urgent fix sooner, run `bun update <package> --minimum-release-age 0`.
+
 Store an expiring, repository-scoped token owned by `COsborn2` in the Actions secret `DEPENDABOT_AUTOMERGE_PAT`. It needs Contents and Pull requests read/write; Workflows write is needed for action updates. The token is used only for the final merge, so GitHub triggers the subsequent publishing workflow. It is not an npm credential.
 
 Enable **Settings → Actions → General → Allow GitHub Actions to create and approve pull requests**, keeping default token permissions read-only. The built-in Actions token supplies the commit-bound approval.
