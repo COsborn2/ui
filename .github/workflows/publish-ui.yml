@@ -37,8 +37,6 @@ jobs:
       - run: bun install --frozen-lockfile
       - run: bun run lint
       - run: bun run build
-      - name: Install browser system dependencies
-        run: bunx playwright install-deps chromium
       - name: Install Chromium headless shell
         run: bunx playwright install --only-shell chromium
       - name: React unit and Storybook interaction/accessibility tests
