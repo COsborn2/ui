@@ -56,6 +56,27 @@
 .story-outline-theme .bnh-pill { border-color: var(--bnh-border); color: var(--bnh-text); }
 .story-outline-theme .bnh-header-shell { position: static; width: auto; transform: none; margin: 0; padding: 10px 20px; }
 
+/* A retro slide switch: framed track with a hard shadow, a ridged thumb and
+   I/O marks, all through switch tokens. Hover lifts it and a press flattens
+   it, like the buttons. */
+.story-outline-theme .bnh-switch-track {
+  --bnh-switch-width: 50px;
+  --bnh-switch-height: 26px;
+  --bnh-switch-thumb: 18px;
+  --bnh-switch-border-width: var(--bnh-border-width);
+  --bnh-switch-border-color: #111111;
+  --bnh-switch-shadow: 2px 2px 0 #111111;
+  --bnh-switch-active: #8ef0a8;
+  --bnh-switch-thumb-color: #ffffff;
+  --bnh-switch-thumb-shadow: none;
+  --bnh-switch-grip: #111111;
+  --bnh-switch-mark-on: #111111;
+  --bnh-switch-mark-off: var(--bnh-text-dim);
+  transition: background .15s, box-shadow 80ms, transform 80ms;
+}
+.story-outline-theme .bnh-switch:hover .bnh-switch-input:not(:disabled) + .bnh-switch-track { transform: translate(-1px, -1px); box-shadow: 3px 3px 0 #111111; }
+.story-outline-theme .bnh-switch:active .bnh-switch-input:not(:disabled) + .bnh-switch-track { transform: translate(2px, 2px); box-shadow: none; }
+
 /* Applications often set tokens on :root inside the theme layer. The
    package's theme selectors have zero specificity, so this also wins under
    the light palette. No component reads --bnh-orange, so the probe is inert. */

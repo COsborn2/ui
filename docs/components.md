@@ -141,6 +141,17 @@ A shadow token holds one complete `box-shadow` value (`none` is allowed). Derive
 
 Restyle in two steps. Set tokens for decisions that cut across components, such as border width, radius, elevation, and materials. Then target the documented `bnh-*` class names for anything component-specific. Presentation lives in the stylesheets. Props such as Pill `tint` or HeaderShell `gap` never write inline declarations that a stylesheet cannot override, and the Select chevron is an SVG (`.bnh-select-icon`) that follows `color`. Per-instance values arrive as custom properties (`--bnh-pill-*`, `--bnh-header-shell-*`, `--bnh-expandable-pill-*`, `--bnh-color-picker-swatch`, `--bnh-segment-accent`, `--bnh-settings-enter-delay`), and stateful parts expose attributes such as `data-state` and `aria-pressed`.
 
+Switch reads optional tokens wherever they are set on or above `.bnh-switch-track`. They cover geometry (`--bnh-switch-width`, `-height`, `-thumb`, `-inset`), colour (`-inactive`, `-active`, `-thumb-color`, `-thumb-shadow`) and slide-switch details that are off by default:
+
+| Token | Draws |
+| --- | --- |
+| `--bnh-switch-border-width`, `--bnh-switch-border-color` | A frame around the track and the thumb. Thumb travel accounts for it. |
+| `--bnh-switch-shadow` | The track's shadow. |
+| `--bnh-switch-grip` | Three grip ridges on the thumb. |
+| `--bnh-switch-mark-on`, `--bnh-switch-mark-off` | An I beside the thumb when on and an O when off, so the state doesn't rely on colour alone. |
+
+The Theming › Slide switch story shows a retro slide switch built from these tokens, with hover and press rules on `.bnh-switch`.
+
 CSS uses the layer order `theme, base, components, utilities`. Package styles live in `components`, so any rule in a later layer or outside layers overrides them without extra specificity. Applications with utility classes can declare an override layer between the two, which keeps per-instance utilities in charge:
 
 ```css
