@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { createRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { describe, expect, test, vi } from "vitest";
@@ -100,6 +102,45 @@ describe("native form controls", () => {
     expect(toggle.current).toBe(screen.getByRole("switch"));
     input.current?.focus();
     expect(input.current).toHaveFocus();
+  });
+});
+
+// The font size a component stylesheet gives an element on a touch screen.
+// jsdom evaluates no media queries, so this walks the rules itself: it applies
+// `(pointer: coarse)` and skips other media queries, which never size a field.
+// Field rules are single classes, so the last matching declaration wins.
+function touchScreenFontSize(element: Element, stylesheet: string): string | undefined {
+  const style = document.createElement("style");
+  style.textContent = readFileSync(join(import.meta.dirname, "../styles", stylesheet), "utf8");
+  document.head.append(style);
+  let size: string | undefined;
+  const visit = (rules: CSSRuleList) => {
+    for (const rule of Array.from(rules)) {
+      if (rule.type === CSSRule.MEDIA_RULE) {
+        const media = rule as CSSMediaRule;
+        if (media.conditionText === "(pointer: coarse)") visit(media.cssRules);
+      } else if (rule.type === CSSRule.STYLE_RULE) {
+        const { style, selectorText } = rule as CSSStyleRule;
+        if (style.fontSize && element.matches(selectorText)) size = style.fontSize;
+      } else if ("cssRules" in rule) {
+        visit((rule as CSSGroupingRule).cssRules);
+      }
+    }
+  };
+  visit(style.sheet!.cssRules);
+  style.remove();
+  return size;
+}
+
+describe("fields on touch screens", () => {
+  test("Input and every Select size get 16px text, so iOS Safari doesn't zoom into a focused field", () => {
+    render(<><Input label="Name" /><Select label="Plan"><option>Free</option></Select><Select label="Team" size="sm"><option>All</option></Select></>);
+    const fields = [
+      [screen.getByRole("textbox", { name: "Name" }), "input.css"],
+      [screen.getByRole("combobox", { name: "Plan" }), "select.css"],
+      [screen.getByRole("combobox", { name: "Team" }), "select.css"],
+    ] as const;
+    for (const [field, stylesheet] of fields) expect(touchScreenFontSize(field, stylesheet)).toBe("16px");
   });
 });
 

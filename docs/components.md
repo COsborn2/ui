@@ -141,6 +141,8 @@ A shadow token holds one complete `box-shadow` value (`none` is allowed). Derive
 
 Restyle in two steps. Set tokens for decisions that cut across components, such as border width, radius, elevation, and materials. Then target the documented `bnh-*` class names for anything component-specific. Presentation lives in the stylesheets. Props such as Pill `tint` or HeaderShell `gap` never write inline declarations that a stylesheet cannot override, and the Select chevron is an SVG (`.bnh-select-icon`) that follows `color`. Per-instance values arrive as custom properties (`--bnh-pill-*`, `--bnh-header-shell-*`, `--bnh-expandable-pill-*`, `--bnh-color-picker-swatch`, `--bnh-segment-accent`, `--bnh-settings-enter-delay`), and stateful parts expose attributes such as `data-state` and `aria-pressed`.
 
+On touch screens (`pointer: coarse`), `Input` and both `Select` sizes use 16px text, because iOS Safari zooms the page into a focused field whose text is smaller. An override that sets `.bnh-input` or `.bnh-select--*` `font-size` replaces that size, so keep it at least 16px under the same media query.
+
 Switch reads optional tokens wherever they are set on or above `.bnh-switch-track`. They cover geometry (`--bnh-switch-width`, `-height`, `-thumb`, `-inset`), colour (`-inactive`, `-active`, `-thumb-color`, `-thumb-shadow`) and slide-switch details that are off by default:
 
 | Token | Draws |
